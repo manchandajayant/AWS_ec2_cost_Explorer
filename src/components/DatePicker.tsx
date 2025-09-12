@@ -266,8 +266,8 @@ export const ModernDatePicker: React.FC<ModernDatePickerProps> = ({ onApply, ini
         <div className={`bg-white rounded-2xl py-6 max-w-lg ${disabled ? "opacity-60 pointer-events-none" : ""} ${className}`}>
             {/* Header */}
             <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 bg-slate-400 rounded-xl flex items-center justify-center">
-                    <Calendar className="w-5 h-5 text-gray-50" />
+                <div className="w-10 h-10 bg-black rounded-xl flex items-center justify-center">
+                    <Calendar className="w-5 h-5 text-white" />
                 </div>
                 <div>
                     <h3 className="text-lg font-semibold text-gray-900">Select Date Range</h3>
@@ -321,7 +321,7 @@ export const ModernDatePicker: React.FC<ModernDatePickerProps> = ({ onApply, ini
                 onClick={handleApply}
                 disabled={!start || !end || isLoading || disabled}
                 className={`w-full py-3 px-6 rounded-xl font-semibold text-sm transition-all duration-200 ${
-                    start && end && !isLoading && !disabled ? "bg-gradient-to-r bg-gray-600 text-gray-100 shadow-lg hover:shadow-xl" : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                    start && end && !isLoading && !disabled ? "bg-gradient-to-r bg-black text-gray-100 shadow-lg hover:shadow-xl" : "bg-gray-100 text-gray-400 cursor-not-allowed"
                 }`}
                 type="button"
             >

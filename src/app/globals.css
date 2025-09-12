@@ -43,3 +43,9 @@ body {
   background: var(--background);
   color: var(--foreground);
 }
+
+/* Lock page scroll; content pane manages its own scroll */
+html, body {
+  height: 100%;
+  overflow: hidden;
+}

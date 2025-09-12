@@ -6,6 +6,7 @@ import { CostProvider } from "@/context/CostContext";
 import Cost from "./cost";
 import InstancesList from "./ec2Table";
 import Overview from "./overview";
+import { Ec2Provider } from "@/context/EC2Context";
 // import MockInstances from "@/components/MockInstances";
 const DashboardPage: React.FC = () => {
     return (
@@ -17,7 +18,9 @@ const DashboardPage: React.FC = () => {
                     {/* <InstancesProvider> */}
                     <div className="flex flex-col gap-4 sm:gap-5">
                         <section className="bg-white rounded-xl shadow-md p-3">
-                            <Overview />
+                            <Ec2Provider>
+                                <Overview />
+                            </Ec2Provider>
                         </section>
 
                         <section className="bg-white rounded-xl shadow-md p-3">

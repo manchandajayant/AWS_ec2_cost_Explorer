@@ -142,16 +142,40 @@ function computeComponentsForPeriod(inst: Instance, periodStartISO: string, peri
     const infra = seededInfra(inst);
     const allDays = daysBetween(periodStartISO, periodEndISO);
     let totalComputeAmount = 0;
+    // for (const day of allDays) {
+    //     if (includeFuture === false && new Date(day) > MOCK_TODAY) {
+    //         continue;
+    //     }
+    //     const dayEnd = iso(new Date(new Date(day).getTime() + 24 * 3600 * 1000));
+    //     const dailyOverlapHours = Math.max(0, hoursOverlap(inst.launchTime, day, dayEnd));
+    //     if (dailyOverlapHours <= 0) continue;
+    //     const dailyHoursCap = signals.baseUptime;
+    //     const dailyComputeHours = Math.min(dailyOverlapHours, dailyHoursCap);
+    //     const dailyComputeAmount = metric === "UsageQuantity" ? dailyComputeHours : dailyComputeHours * spec.pricePerHour * seededFloat(inst.instanceId + day, 0.97, 1.05);
+    //     totalComputeAmount += dailyComputeAmount;
+    // }
     for (const day of allDays) {
         if (includeFuture === false && new Date(day) > MOCK_TODAY) {
             continue;
         }
+
+        // --- ADD SPIKE SIMULATION LOGIC ---
+        let spikeMultiplier = 1.0;
+        // Give each day a 15% chance of being a "spike day". This is deterministic.
+        if (seededBool(day, 0.15)) {
+            // If it's a spike day, make the cost 3x to 7x higher than normal.
+            spikeMultiplier = seededFloat(day, 3, 7);
+        }
+        // --- END SPIKE SIMULATION LOGIC ---
+
         const dayEnd = iso(new Date(new Date(day).getTime() + 24 * 3600 * 1000));
         const dailyOverlapHours = Math.max(0, hoursOverlap(inst.launchTime, day, dayEnd));
         if (dailyOverlapHours <= 0) continue;
         const dailyHoursCap = signals.baseUptime;
         const dailyComputeHours = Math.min(dailyOverlapHours, dailyHoursCap);
-        const dailyComputeAmount = metric === "UsageQuantity" ? dailyComputeHours : dailyComputeHours * spec.pricePerHour * seededFloat(inst.instanceId + day, 0.97, 1.05);
+
+        const dailyComputeAmount = metric === "UsageQuantity" ? dailyComputeHours : dailyComputeHours * spec.pricePerHour * seededFloat(inst.instanceId + day, 0.97, 1.05) * spikeMultiplier; // <-- Apply the spike multiplier here
+
         totalComputeAmount += dailyComputeAmount;
     }
     const periodDays = Math.max(0, daysInRange(periodStartISO, periodEndISO));

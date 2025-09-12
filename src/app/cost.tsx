@@ -299,6 +299,10 @@ function Inner() {
     }, [breakdown, total, granularity, topTotals]); // This will run whenever the data or the final total changes
     return (
         <div className="flex flex-col gap-4">
+            <div className="mb-1">
+                <h2 className="text-base font-semibold text-gray-900">Costs Attributions</h2>
+                <p className="text-sm text-gray-600">find in detail costs breakup by your deployment regions, instance type and custom tags</p>
+            </div>
             {/* Tabs */}
             <div className="flex items-center gap-2">
                 <button
