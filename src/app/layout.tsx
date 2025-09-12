@@ -2,6 +2,7 @@ import GlobalLoader from "@/components/global-loader";
 import SidebarLayout from "@/components/sidebar-layout";
 import { GlobalLoadingProvider } from "@/context/GlobalLoadingContext";
 import { UIProvider } from "@/context/UIContext";
+import ResponsiveGate from "@/components/responsive-gate";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
@@ -27,8 +28,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}>
                 <UIProvider>
                     <GlobalLoadingProvider>
-                        <SidebarLayout>{children}</SidebarLayout>
-                        <GlobalLoader />
+                        <ResponsiveGate>
+                            <SidebarLayout>{children}</SidebarLayout>
+                            <GlobalLoader />
+                        </ResponsiveGate>
                     </GlobalLoadingProvider>
                 </UIProvider>
             </body>
