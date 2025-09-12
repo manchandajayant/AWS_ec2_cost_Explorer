@@ -322,7 +322,7 @@ export const ModernDatePicker: React.FC<ModernDatePickerProps> = ({ onApply, ini
                 disabled={!start || !end || isLoading || disabled}
                 className={`w-full py-3 px-6 rounded-xl font-semibold text-sm transition-all duration-200 ${
                     start && end && !isLoading && !disabled
-                        ? "bg-gradient-to-r from-gray-500 to-gray-600 text-white shadow-lg hover:shadow-xl hover:scale-105 active:scale-95"
+                        ? "bg-gradient-to-r from-indigo-500 to-indigo-600 text-white shadow-lg hover:shadow-xl hover:scale-105 active:scale-95"
                         : "bg-gray-100 text-gray-400 cursor-not-allowed"
                 }`}
                 type="button"
