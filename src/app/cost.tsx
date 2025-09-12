@@ -52,6 +52,20 @@ function buildLineSeries(rows: BreakdownRow[], topN = 5) {
     return { labels: dates, datasets, topTotals: totals };
 }
 
+// Simple local spike detector to highlight only pronounced peaks
+function detectSpikes(values: number[]): Set<number> {
+    const spikes = new Set<number>();
+    if (!Array.isArray(values) || values.length < 3) return spikes;
+    for (let i = 1; i < values.length - 1; i++) {
+        const v = Number(values[i] ?? 0);
+        const prev = Number(values[i - 1] ?? 0);
+        const next = Number(values[i + 1] ?? 0);
+        const localMean = (prev + next) / 2;
+        if (v > prev && v > next && (localMean === 0 ? v > 0 : v >= 1.5 * localMean)) spikes.add(i);
+    }
+    return spikes;
+}
+
 // (If needed later) helper to aggregate by date
 // function buildTotalSeriesByDate(rows: BreakdownRow[]) {
 //     const totals = new Map<string, number>();
@@ -353,7 +367,7 @@ function Inner() {
                                         <div className="text-sm font-semibold mb-2">Granularity</div>
                                         <div className="grid grid-cols-2 gap-2">
                                             <button
-                                                className={`rounded-md px-3 py-2 text-sm font-semibold shadow-xs ring-1 ring-inset hover:bg-gray-50 ${
+                                                className={`rounded-md px-3 py-2 text-sm shadow-xs ring-1 ring-inset hover:bg-gray-50 ${
                                                     granularity === "DAILY" ? "bg-gray-100 ring-gray-400" : "bg-white ring-gray-300"
                                                 }`}
                                                 onClick={() => setGranularity("DAILY")}
@@ -361,7 +375,7 @@ function Inner() {
                                                 Daily
                                             </button>
                                             <button
-                                                className={`rounded-md px-3 py-2 text-sm font-semibold shadow-xs ring-1 ring-inset hover:bg-gray-50 ${
+                                                className={`rounded-md px-3 py-2 text-sm shadow-xs ring-1 ring-inset hover:bg-gray-50 ${
                                                     granularity === "MONTHLY" ? "bg-gray-100 ring-gray-400" : "bg-white ring-gray-300"
                                                 }`}
                                                 onClick={() => setGranularity("MONTHLY")}
@@ -375,7 +389,7 @@ function Inner() {
                                         <div className="text-sm font-semibold mb-2">Group By</div>
                                         <div className="grid grid-cols-3 gap-2">
                                             <button
-                                                className={`rounded-md px-3 py-2 text-sm font-semibold shadow-xs ring-1 ring-inset hover:bg-gray-50 ${
+                                                className={`rounded-md px-3 py-2 text-sm shadow-xs ring-1 ring-inset hover:bg-gray-50 ${
                                                     groupBy === "REGION" ? "bg-gray-100 ring-gray-400" : "bg-white ring-gray-300"
                                                 }`}
                                                 onClick={() => setGroupBy("REGION")}
@@ -383,7 +397,7 @@ function Inner() {
                                                 Region
                                             </button>
                                             <button
-                                                className={`rounded-md px-3 py-2 text-sm font-semibold shadow-xs ring-1 ring-inset hover:bg-gray-50 ${
+                                                className={`rounded-md px-3 py-2 text-sm shadow-xs ring-1 ring-inset hover:bg-gray-50 ${
                                                     groupBy === "INSTANCE_TYPE" ? "bg-gray-100 ring-gray-400" : "bg-white ring-gray-300"
                                                 }`}
                                                 onClick={() => setGroupBy("INSTANCE_TYPE")}
@@ -391,7 +405,7 @@ function Inner() {
                                                 Instance Type
                                             </button>
                                             <button
-                                                className={`rounded-md px-3 py-2 text-sm font-semibold shadow-xs ring-1 ring-inset hover:bg-gray-50 ${
+                                                className={`rounded-md px-3 py-2 text-sm shadow-xs ring-1 ring-inset hover:bg-gray-50 ${
                                                     groupBy === "USAGE_TYPE" ? "bg-gray-100 ring-gray-400" : "bg-white ring-gray-300"
                                                 }`}
                                                 onClick={() => setGroupBy("USAGE_TYPE")}
@@ -405,7 +419,7 @@ function Inner() {
                                         <div className="text-sm font-semibold mb-2">Chart Type</div>
                                         <div className="grid grid-cols-2 gap-2">
                                             <button
-                                                className={`rounded-md px-3 py-2 text-sm font-semibold shadow-xs ring-1 ring-inset hover:bg-gray-50 ${
+                                                className={`rounded-md px-3 py-2 text-sm shadow-xs ring-1 ring-inset hover:bg-gray-50 ${
                                                     chartType === "bar" ? "bg-gray-100 ring-gray-400" : "bg-white ring-gray-300"
                                                 }`}
                                                 onClick={() => setChartType("bar")}
@@ -413,7 +427,7 @@ function Inner() {
                                                 Bar
                                             </button>
                                             <button
-                                                className={`rounded-md px-3 py-2 text-sm font-semibold shadow-xs ring-1 ring-inset hover:bg-gray-50 ${
+                                                className={`rounded-md px-3 py-2 text-sm shadow-xs ring-1 ring-inset hover:bg-gray-50 ${
                                                     chartType === "line" ? "bg-gray-100 ring-gray-400" : "bg-white ring-gray-300"
                                                 }`}
                                                 onClick={() => setChartType("line")}
@@ -445,13 +459,15 @@ function Inner() {
                                                 value={topN === "ALL" ? maxTopSelectable : topN}
                                                 onChange={(e) => setTopN(parseInt(e.target.value, 10))}
                                                 disabled={topN === "ALL"}
-                                                className="w-full accent-indigo-600"
+                                                className="w-full accent-black"
                                             />
                                             <div className="mt-1 flex justify-between text-[10px] text-gray-500">
                                                 <span>1</span>
                                                 <span>{maxTopSelectable}</span>
                                             </div>
-                                            <div className="mt-1 text-xs text-gray-600">Showing top {topN === "ALL" ? "All" : topN} of {maxTopSelectable}</div>
+                                            <div className="mt-1 text-xs text-gray-600">
+                                                Showing top {topN === "ALL" ? "All" : topN} of {maxTopSelectable}
+                                            </div>
                                         </div>
                                     </div>
                                     {/* Tag Filters */}
@@ -474,7 +490,7 @@ function Inner() {
                                                         return (
                                                             <button
                                                                 key={v}
-                                                                className={`rounded-md px-2.5 py-1.5 text-xs font-medium shadow-xs ring-1 ring-inset hover:bg-gray-50 ${
+                                                                className={`rounded-md px-2.5 py-1.5 text-xs shadow-xs ring-1 ring-inset hover:bg-gray-50 ${
                                                                     active ? "bg-gray-100 ring-gray-400" : "bg-white ring-gray-300"
                                                                 }`}
                                                                 onClick={() => toggleTagValue(v)}
@@ -647,7 +663,7 @@ function Inner() {
                                         <div className="text-sm font-semibold mb-2">Group By</div>
                                         <div className="grid grid-cols-3 gap-2">
                                             <button
-                                                className={`rounded-md px-3 py-2 text-sm font-semibold shadow-xs ring-1 ring-inset hover:bg-gray-50 ${
+                                                className={`rounded-md px-3 py-2 text-sm shadow-xs ring-1 ring-inset hover:bg-gray-50 ${
                                                     groupBy === "REGION" ? "bg-gray-100 ring-gray-400" : "bg-white ring-gray-300"
                                                 }`}
                                                 onClick={() => setGroupBy("REGION")}
@@ -655,7 +671,7 @@ function Inner() {
                                                 Region
                                             </button>
                                             <button
-                                                className={`rounded-md px-3 py-2 text-sm font-semibold shadow-xs ring-1 ring-inset hover:bg-gray-50 ${
+                                                className={`rounded-md px-3 py-2 text-sm shadow-xs ring-1 ring-inset hover:bg-gray-50 ${
                                                     groupBy === "INSTANCE_TYPE" ? "bg-gray-100 ring-gray-400" : "bg-white ring-gray-300"
                                                 }`}
                                                 onClick={() => setGroupBy("INSTANCE_TYPE")}
@@ -663,7 +679,7 @@ function Inner() {
                                                 Instance Type
                                             </button>
                                             <button
-                                                className={`rounded-md px-3 py-2 text-sm font-semibold shadow-xs ring-1 ring-inset hover:bg-gray-50 ${
+                                                className={`rounded-md px-3 py-2 text-sm shadow-xs ring-1 ring-inset hover:bg-gray-50 ${
                                                     groupBy === "USAGE_TYPE" ? "bg-gray-100 ring-gray-400" : "bg-white ring-gray-300"
                                                 }`}
                                                 onClick={() => setGroupBy("USAGE_TYPE")}
@@ -678,7 +694,7 @@ function Inner() {
                                         <div className="text-sm font-semibold mb-2">Chart Type</div>
                                         <div className="grid grid-cols-2 gap-2">
                                             <button
-                                                className={`rounded-md px-3 py-2 text-sm font-semibold shadow-xs ring-1 ring-inset hover:bg-gray-50 ${
+                                                className={`rounded-md px-3 py-2 text-sm shadow-xs ring-1 ring-inset hover:bg-gray-50 ${
                                                     chartType === "bar" ? "bg-gray-100 ring-gray-400" : "bg-white ring-gray-300"
                                                 }`}
                                                 onClick={() => setChartType("bar")}
@@ -686,7 +702,7 @@ function Inner() {
                                                 Bar
                                             </button>
                                             <button
-                                                className={`rounded-md px-3 py-2 text-sm font-semibold shadow-xs ring-1 ring-inset hover:bg-gray-50 ${
+                                                className={`rounded-md px-3 py-2 text-sm shadow-xs ring-1 ring-inset hover:bg-gray-50 ${
                                                     chartType === "line" ? "bg-gray-100 ring-gray-400" : "bg-white ring-gray-300"
                                                 }`}
                                                 onClick={() => setChartType("line")}
@@ -716,7 +732,7 @@ function Inner() {
                                                         return (
                                                             <button
                                                                 key={v}
-                                                                className={`rounded-md px-2.5 py-1.5 text-xs font-medium shadow-xs ring-1 ring-inset hover:bg-gray-50 ${
+                                                                className={`rounded-md px-2.5 py-1.5 text-xs shadow-xs ring-1 ring-inset hover:bg-gray-50 ${
                                                                     active ? "bg-gray-100 ring-gray-400" : "bg-white ring-gray-300"
                                                                 }`}
                                                                 onClick={() => toggleTagValue(v)}
@@ -786,13 +802,21 @@ function Inner() {
                                                 // Add dotted segments for future dates
                                                 const lineData = {
                                                     labels,
-                                                    datasets: (datasets as any).map((ds: any) => ({
-                                                        ...ds,
-                                                        segment: {
-                                                            borderDash: (ctx: any) => (isFutureIdx(ctx.p1DataIndex) ? [4, 4] : undefined),
-                                                        },
-                                                    })),
-                                                };
+                                                    datasets: (datasets as any).map((ds: any) => {
+                                                        const dataArr: number[] = (ds.data || []) as number[];
+                                                        const spikeIdx = detectSpikes(dataArr);
+                                                        return {
+                                                            ...ds,
+                                                            segment: {
+                                                                borderDash: (ctx: any) => (isFutureIdx(ctx.p1DataIndex) ? [4, 4] : undefined),
+                                                            },
+                                                            pointRadius: labels.map((_: any, i: number) => (spikeIdx.has(i) && !isFutureIdx(i) ? 3 : 0)),
+                                                            pointHoverRadius: labels.map((_: any, i: number) => (spikeIdx.has(i) && !isFutureIdx(i) ? 5 : 0)),
+                                                            pointBackgroundColor: labels.map((_: any, i: number) => (spikeIdx.has(i) && !isFutureIdx(i) ? "#ef4444" : "rgba(0,0,0,0)")),
+                                                            pointBorderColor: labels.map((_: any, i: number) => (spikeIdx.has(i) && !isFutureIdx(i) ? "#ef4444" : "rgba(0,0,0,0)")),
+                                                        };
+                                                    }),
+                                                } as any;
                                                 return (
                                                     <Line
                                                         data={lineData}
@@ -801,7 +825,7 @@ function Inner() {
                                                             plugins: { legend: { position: "bottom" } },
                                                             scales: { y: { beginAtZero: true } },
                                                             interaction: { mode: "index", intersect: false },
-                                                            elements: { point: { radius: 2 } },
+                                                            elements: { point: { radius: 0, hoverRadius: 4 } },
                                                         }}
                                                     />
                                                 );
@@ -905,19 +929,28 @@ function Inner() {
                                                     <Line
                                                         data={{
                                                             labels: compareBarData.labels,
-                                                            datasets: (compareBarData.datasets as any).map((ds: any) => ({
-                                                                ...ds,
-                                                                segment: {
-                                                                    borderDash: () => ((ds.label === monthA && futureA) || (ds.label === monthB && futureB) ? [4, 4] : undefined),
-                                                                },
-                                                            })),
+                                                            datasets: (compareBarData.datasets as any).map((ds: any, idx: number) => {
+                                                                const dataArr: number[] = (ds.data || []) as number[];
+                                                                const spikeIdx = detectSpikes(dataArr);
+                                                                const isFuture = (label: string) => (label === monthA && futureA) || (label === monthB && futureB);
+                                                                return {
+                                                                    ...ds,
+                                                                    segment: {
+                                                                        borderDash: () => (isFuture(ds.label) ? [4, 4] : undefined),
+                                                                    },
+                                                                    pointRadius: dataArr.map((_: any, i: number) => (spikeIdx.has(i) && !isFuture(ds.label) ? 3 : 0)),
+                                                                    pointHoverRadius: dataArr.map((_: any, i: number) => (spikeIdx.has(i) && !isFuture(ds.label) ? 5 : 0)),
+                                                                    pointBackgroundColor: dataArr.map((_: any, i: number) => (spikeIdx.has(i) && !isFuture(ds.label) ? "#ef4444" : "rgba(0,0,0,0)")),
+                                                                    pointBorderColor: dataArr.map((_: any, i: number) => (spikeIdx.has(i) && !isFuture(ds.label) ? "#ef4444" : "rgba(0,0,0,0)")),
+                                                                };
+                                                            }),
                                                         }}
                                                         options={{
                                                             maintainAspectRatio: false,
                                                             plugins: { legend: { position: "bottom" } },
                                                             scales: { y: { beginAtZero: true } },
                                                             interaction: { mode: "index", intersect: false },
-                                                            elements: { point: { radius: 2 } },
+                                                            elements: { point: { radius: 0, hoverRadius: 4 } },
                                                         }}
                                                     />
                                                 ) : (
