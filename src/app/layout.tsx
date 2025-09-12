@@ -4,6 +4,8 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/context/ThemeContext";
 import { UIProvider } from "@/context/UIContext";
+import { GlobalLoadingProvider } from "@/context/GlobalLoadingContext";
+import GlobalLoader from "@/components/GlobalLoader";
 
 const geistSans = Geist({
     variable: "--font-geist-sans",
@@ -27,7 +29,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}>
                 <ThemeProvider>
                     <UIProvider>
-                        <SidebarLayout>{children}</SidebarLayout>
+                        <GlobalLoadingProvider>
+                            <SidebarLayout>{children}</SidebarLayout>
+                            <GlobalLoader />
+                        </GlobalLoadingProvider>
                     </UIProvider>
                 </ThemeProvider>
             </body>

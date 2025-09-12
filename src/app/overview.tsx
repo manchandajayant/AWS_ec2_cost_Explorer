@@ -6,6 +6,7 @@ import { BarElement, CategoryScale, Chart as ChartJS, Legend, LinearScale, LineE
 
 import { AlertTriangle } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { useGlobalLoading } from "@/context/GlobalLoadingContext";
 import { Bar, Line } from "react-chartjs-2";
 
 ChartJS.register(LineElement, PointElement, BarElement, CategoryScale, LinearScale, Tooltip, Legend);
@@ -27,6 +28,7 @@ function addDaysISO(isoDate: string, n: number) {
 export default function LiveCostOverview() {
     const { getSummary } = useCost();
     const { instances, loading: instLoading } = useEc2();
+    const { begin, end } = useGlobalLoading();
 
     const [days, setDays] = useState<7 | 1>(7); // toggle 24h(=1) vs 7d
     const [trend, setTrend] = useState<DailyPoint[]>([]);
@@ -54,13 +56,16 @@ export default function LiveCostOverview() {
 
     useEffect(() => {
         setLoading(true);
+        begin();
         // Simulate a brief loading period
-        setTimeout(() => {
+        const id = setTimeout(() => {
             setTrend(mockTrendDataWithSpike);
             setMtd(mockMtdData);
             setLoading(false);
+            end();
         }, 300);
-    }, []);
+        return () => clearTimeout(id);
+    }, [begin, end]);
 
     // useEffect(() => {
     //     (async () => {

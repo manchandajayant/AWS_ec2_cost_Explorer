@@ -2,6 +2,7 @@
 
 import type { EC2InstanceDTO } from "@/types/ec2/EC2InstanceDTO";
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { useGlobalLoading } from "@/context/GlobalLoadingContext";
 
 type Ec2ContextValue = {
     instances: EC2InstanceDTO[];
@@ -30,6 +31,7 @@ export function Ec2Provider({ children, endpoint = "/api/ec2", autoRefreshMs = 0
     const [error, setError] = useState<string | null>(null);
 
     const abortRef = useRef<AbortController | null>(null);
+    const { begin, end } = useGlobalLoading();
 
     // fetchInstances
     const fetchInstances = useCallback(async () => {
@@ -38,6 +40,7 @@ export function Ec2Provider({ children, endpoint = "/api/ec2", autoRefreshMs = 0
         abortRef.current?.abort();
         const controller = new AbortController();
         abortRef.current = controller;
+        begin();
 
         try {
             const res = await fetch(endpoint, { signal: controller.signal, cache: "no-store" });
@@ -49,8 +52,9 @@ export function Ec2Provider({ children, endpoint = "/api/ec2", autoRefreshMs = 0
             if (e?.name !== "AbortError") setError(e?.message || "Failed to fetch EC2 instances");
         } finally {
             setLoading(false);
+            end();
         }
-    }, [endpoint]);
+    }, [endpoint, begin, end]);
 
     const refresh = useCallback(async () => {
         await fetchInstances();
@@ -111,29 +115,33 @@ export function Ec2Provider({ children, endpoint = "/api/ec2", autoRefreshMs = 0
     const refreshUtilization = useCallback(
         async (days = 7) => {
             if (instances.length === 0) return;
-
-            // Build tasks only for those missing/expired metrics
-            const tasks = instances.map((inst) => async () => {
-                try {
-                    const res = await fetchOneUtil(inst, days);
-                    return res;
-                } catch {
-                    return { instanceId: inst.instanceId, cpuAvg7d: 0, memAvg7d: null as number | null };
-                }
-            });
-
-            const results = await withLimit(tasks, 5);
-
-            // Merge back into instances
-            setInstances((prev) => {
-                const map = new Map(results.map((r) => [r.instanceId, r]));
-                return prev.map((i) => {
-                    const m = map.get(i.instanceId);
-                    return m ? { ...i, cpuAvg7d: m.cpuAvg7d, memAvg7d: m.memAvg7d } : i;
+            begin();
+            try {
+                // Build tasks only for those missing/expired metrics
+                const tasks = instances.map((inst) => async () => {
+                    try {
+                        const res = await fetchOneUtil(inst, days);
+                        return res;
+                    } catch {
+                        return { instanceId: inst.instanceId, cpuAvg7d: 0, memAvg7d: null as number | null };
+                    }
                 });
-            });
+
+                const results = await withLimit(tasks, 5);
+
+                // Merge back into instances
+                setInstances((prev) => {
+                    const map = new Map(results.map((r) => [r.instanceId, r]));
+                    return prev.map((i) => {
+                        const m = map.get(i.instanceId);
+                        return m ? { ...i, cpuAvg7d: m.cpuAvg7d, memAvg7d: m.memAvg7d } : i;
+                    });
+                });
+            } finally {
+                end();
+            }
         },
-        [instances, fetchOneUtil]
+        [instances, fetchOneUtil, begin, end]
     );
 
     // Optionally: auto-fetch utilization after base instances load (once)
