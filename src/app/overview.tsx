@@ -4,9 +4,9 @@ import { useCost } from "@/context/CostContext";
 import { useEc2 } from "@/context/EC2Context";
 import { BarElement, CategoryScale, Chart as ChartJS, Legend, LinearScale, LineElement, PointElement, Tooltip } from "chart.js";
 
+import { useGlobalLoading } from "@/context/GlobalLoadingContext";
 import { AlertTriangle } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { useGlobalLoading } from "@/context/GlobalLoadingContext";
 import { Bar, Line } from "react-chartjs-2";
 
 ChartJS.register(LineElement, PointElement, BarElement, CategoryScale, LinearScale, Tooltip, Legend);
@@ -250,7 +250,7 @@ export default function LiveCostOverview() {
                             <div className="text-2xl font-semibold">{instances.length.toLocaleString()}</div>
                         </div>
                     </div>
-                    <div className="h-40">
+                    <div className="h-70">
                         <Bar data={utilBarData} options={utilBarOptions as any} />
                     </div>
                     <div className="mt-3">

@@ -1,6 +1,6 @@
 "use client";
-import { ChevronDown } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { ChevronDown, MoreHorizontal, Cpu, HardDrive, CircuitBoard, Gauge, Clock, DollarSign } from "lucide-react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 
 type InstanceStatus = "Under Utilized" | "Optimal" | "Over Utilized" | "Idle" | "Unknown";
 
@@ -46,6 +46,104 @@ function pct(n: number | null | undefined) {
 }
 function usd(n: number) {
     return `$${Number(n || 0).toFixed(3)}`;
+}
+
+// Utilization color helpers based on status label
+function utilBarClass(status: InstanceStatus) {
+    switch (status) {
+        case "Idle":
+        case "Under Utilized":
+            return "bg-red-500";
+        case "Optimal":
+            return "bg-green-500";
+        case "Over Utilized":
+            return "bg-amber-500"; // dark yellow / orange
+        case "Unknown":
+        default:
+            return "bg-slate-400";
+    }
+}
+function utilTrackClass(status: InstanceStatus) {
+    switch (status) {
+        case "Idle":
+        case "Under Utilized":
+            return "bg-red-100";
+        case "Optimal":
+            return "bg-green-100";
+        case "Over Utilized":
+            return "bg-amber-100";
+        case "Unknown":
+        default:
+            return "bg-slate-200";
+    }
+}
+function utilTextClass(status: InstanceStatus) {
+    switch (status) {
+        case "Idle":
+        case "Under Utilized":
+            return "text-red-600";
+        case "Optimal":
+            return "text-green-600";
+        case "Over Utilized":
+            return "text-amber-600";
+        case "Unknown":
+        default:
+            return "text-slate-600";
+    }
+}
+function utilBorderClass(status: InstanceStatus) {
+    switch (status) {
+        case "Idle":
+        case "Under Utilized":
+            return "border-red-200";
+        case "Optimal":
+            return "border-green-200";
+        case "Over Utilized":
+            return "border-amber-200";
+        case "Unknown":
+        default:
+            return "border-slate-200";
+    }
+}
+
+// Metric-specific color helpers (mixed cases):
+// Red for idle/under, green for optimal, amber for over.
+type UtilCategory = "idle_under" | "optimal" | "over" | "unknown";
+function metricCategory(value: number | null | undefined): UtilCategory {
+    const v = typeof value === "number" && Number.isFinite(value) ? value : null;
+    if (v === null) return "unknown";
+    if (v < 3) return "idle_under"; // idle
+    if (v < 40) return "idle_under"; // under-utilized
+    if (v > 70) return "over"; // over-utilized
+    return "optimal"; // 40-70
+}
+function metricBarClassFromValue(value: number | null | undefined) {
+    const c = metricCategory(value);
+    if (c === "idle_under") return "bg-red-500";
+    if (c === "optimal") return "bg-green-500";
+    if (c === "over") return "bg-amber-500";
+    return "bg-slate-400";
+}
+function metricTrackClassFromValue(value: number | null | undefined) {
+    const c = metricCategory(value);
+    if (c === "idle_under") return "bg-red-100";
+    if (c === "optimal") return "bg-green-100";
+    if (c === "over") return "bg-amber-100";
+    return "bg-slate-200";
+}
+function metricTextClassFromValue(value: number | null | undefined) {
+    const c = metricCategory(value);
+    if (c === "idle_under") return "text-red-600";
+    if (c === "optimal") return "text-green-600";
+    if (c === "over") return "text-amber-600";
+    return "text-slate-600";
+}
+function metricBorderClassFromValue(value: number | null | undefined) {
+    const c = metricCategory(value);
+    if (c === "idle_under") return "border-red-200";
+    if (c === "optimal") return "border-green-200";
+    if (c === "over") return "border-amber-200";
+    return "border-slate-200";
 }
 
 // ---------- Multi-sort controls ----------
@@ -108,6 +206,19 @@ export default function InstancesTable({ instances }: { instances: any[] }) {
         region: "asc",
         type: "asc",
     });
+    // Expandable details rows
+    const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+    const toggleExpanded = (id: string) => setExpanded((e) => ({ ...e, [id]: !e[id] }));
+
+    // Simple progress bar for percentages with customizable colors
+    const Bar = ({ value, barClass = "bg-blue-500", trackClass = "bg-slate-200" }: { value: number | null | undefined; barClass?: string; trackClass?: string }) => {
+        const v = typeof value === "number" && Number.isFinite(value) ? Math.max(0, Math.min(100, value)) : null;
+        return (
+            <div className={`h-2 w-full rounded-full ${trackClass}`}>
+                {v !== null && <div className={`h-2 rounded-full ${barClass}`} style={{ width: `${v}%` }} />}
+            </div>
+        );
+    };
 
     const moveUp = (k: SortableKey) => {
         const i = sortKeys.indexOf(k);
@@ -211,48 +322,73 @@ export default function InstancesTable({ instances }: { instances: any[] }) {
                                 <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Status</th>
                                 <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Type</th>
                                 <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Region</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">vCPU</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">RAM</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">GPU</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">$ / hr</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Uptime (h)</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">CPU avg (7d)</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Mem avg (7d)</th>
-                                <th className="px-4 py-3"></th>
+                                <th className="px-4 py-3 text-right"></th>
                             </tr>
                         </thead>
                         <tbody>
                             {sorted.map((it: any) => (
-                                <tr key={it.id} className="border-b border-border hover:bg-muted/50">
-                                    <td className={`px-4 py-3 font-medium text-foreground whitespace-nowrap ${statusBorderClass(it.statusLabel as InstanceStatus)}`}>{it.id}</td>
-                                    <td className="px-4 py-3 whitespace-nowrap">
-                                        <span title={it.statusReason} className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ${badgeClasses(it.statusLabel as InstanceStatus)}`}>
-                                            {it.statusLabel}
-                                        </span>
-                                    </td>
-                                    <td className="px-4 py-3 text-foreground whitespace-nowrap">{it.type}</td>
-                                    <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">{it.region}</td>
-                                    <td className="px-4 py-3 text-foreground whitespace-nowrap">{it.vcpu}</td>
-                                    <td className="px-4 py-3 text-foreground whitespace-nowrap">{it.ramGB} GB</td>
-                                    <td className="px-4 py-3 text-foreground whitespace-nowrap">{it.gpu ?? 0}</td>
-                                    <td className="px-4 py-3 text-foreground whitespace-nowrap">{usd(it.pricePerHour)}</td>
-                                    <td className="px-4 py-3 text-foreground whitespace-nowrap">{it.uptimeHours}</td>
-                                    <td className="px-4 py-3 text-foreground whitespace-nowrap">{pct(it.cpuAvg7d)}</td>
-                                    <td className="px-4 py-3 text-foreground whitespace-nowrap">{pct(it.memAvg7d)}</td>
-                                    <td className="px-4 py-3 text-right whitespace-nowrap">
-                                        <button
-                                            type="button"
-                                            className="rounded-md bg-white px-3 py-1.5 text-sm font-semibold text-gray-900 shadow-xs inset-ring inset-ring-gray-300 hover:bg-gray-50"
-                                            onClick={() => console.log("Details for", it.id)}
-                                        >
-                                            Details<span className="sr-only">, {it.id}</span>
-                                        </button>
-                                    </td>
-                                </tr>
+                                <Fragment key={it.id}>
+                                <tr className="border-b border-border hover:bg-muted/50">
+                                        <td className={`px-4 py-3 font-medium text-foreground whitespace-nowrap ${statusBorderClass(it.statusLabel as InstanceStatus)}`}>{it.id}</td>
+                                        <td className="px-4 py-3 whitespace-nowrap">
+                                            <span title={it.statusReason} className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ${badgeClasses(it.statusLabel as InstanceStatus)}`}>
+                                                {it.statusLabel}
+                                            </span>
+                                        </td>
+                                        <td className="px-4 py-3 text-foreground whitespace-nowrap">{it.type}</td>
+                                        <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">{it.region}</td>
+                                        <td className="px-4 py-3 text-right whitespace-nowrap">
+                                            <button
+                                                type="button"
+                                                aria-label={`Details for ${it.id}`}
+                                                className="rounded-md p-1.5 text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                                                onClick={() => toggleExpanded(it.id)}
+                                            >
+                                                <MoreHorizontal size={18} />
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    {expanded[it.id] && (
+                                        <tr className="border-b border-border bg-gray-50/60">
+                                            <td colSpan={5} className="px-4 py-3">
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                                                    <div className="flex items-center gap-3 rounded-md border bg-white px-3 py-2 border-indigo-200">
+                                                        <Cpu size={16} className="text-indigo-600" />
+                                                        <div className="text-sm"><div className="text-muted-foreground">vCPU</div><div className="font-medium text-foreground">{it.vcpu}</div></div>
+                                                    </div>
+                                                    <div className="flex items-center gap-3 rounded-md border bg-white px-3 py-2 border-emerald-200">
+                                                        <HardDrive size={16} className="text-emerald-600" />
+                                                        <div className="text-sm"><div className="text-muted-foreground">RAM</div><div className="font-medium text-foreground">{it.ramGB} GB</div></div>
+                                                    </div>
+                                                    <div className="flex items-center gap-3 rounded-md border bg-white px-3 py-2 border-purple-200">
+                                                        <CircuitBoard size={16} className="text-purple-600" />
+                                                        <div className="text-sm"><div className="text-muted-foreground">GPU</div><div className="font-medium text-foreground">{it.gpu ?? 0}</div></div>
+                                                    </div>
+                                                    <div className="flex items-center gap-3 rounded-md border bg-white px-3 py-2 border-amber-200">
+                                                        <DollarSign size={16} className="text-amber-600" />
+                                                        <div className="text-sm"><div className="text-muted-foreground">$ / hr</div><div className="font-medium text-foreground">{usd(it.pricePerHour)}</div></div>
+                                                    </div>
+                                                    <div className="flex items-center gap-3 rounded-md border bg-white px-3 py-2 border-sky-200">
+                                                        <Clock size={16} className="text-sky-600" />
+                                                        <div className="text-sm"><div className="text-muted-foreground">Uptime (h)</div><div className="font-medium text-foreground">{it.uptimeHours}</div></div>
+                                                    </div>
+                                                    <div className={`rounded-md border bg-white px-3 py-2 ${metricBorderClassFromValue(it.cpuAvg7d)}`}>
+                                                        <div className="flex items-center gap-2 text-sm mb-1"><Gauge size={16} className={metricTextClassFromValue(it.cpuAvg7d)} /><span className="text-muted-foreground">CPU avg (7d)</span><span className="ml-auto font-medium text-foreground">{pct(it.cpuAvg7d)}</span></div>
+                                                        <Bar value={typeof it.cpuAvg7d === "number" ? it.cpuAvg7d : null} barClass={metricBarClassFromValue(it.cpuAvg7d)} trackClass={metricTrackClassFromValue(it.cpuAvg7d)} />
+                                                    </div>
+                                                    <div className={`rounded-md border bg-white px-3 py-2 ${metricBorderClassFromValue(it.memAvg7d)}`}>
+                                                        <div className="flex items-center gap-2 text-sm mb-1"><Gauge size={16} className={metricTextClassFromValue(it.memAvg7d)} /><span className="text-muted-foreground">Mem avg (7d)</span><span className="ml-auto font-medium text-foreground">{pct(it.memAvg7d)}</span></div>
+                                                        <Bar value={typeof it.memAvg7d === "number" ? it.memAvg7d : null} barClass={metricBarClassFromValue(it.memAvg7d)} trackClass={metricTrackClassFromValue(it.memAvg7d)} />
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    )}
+                                </Fragment>
                             ))}
                             {sorted.length === 0 && (
                                 <tr>
-                                    <td colSpan={12} className="px-4 py-6 text-center text-muted-foreground">
+                                    <td colSpan={5} className="px-4 py-6 text-center text-muted-foreground">
                                         No instances to display.
                                     </td>
                                 </tr>
