@@ -4,41 +4,14 @@ import { useCost } from "@/context/CostContext";
 import { useEc2 } from "@/context/EC2Context";
 import { BarElement, CategoryScale, Chart as ChartJS, Legend, LinearScale, LineElement, PointElement, Tooltip } from "chart.js";
 
+import { addDaysISO, fmtUSD, iso, startOfMonth } from "@/app/utils/helpers";
 import { useGlobalLoading } from "@/context/GlobalLoadingContext";
+import { DailyPoint, InstanceStatusLabel } from "@/types/overview/types";
 import { AlertTriangle } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Bar, Line } from "react-chartjs-2";
 
 ChartJS.register(LineElement, PointElement, BarElement, CategoryScale, LinearScale, Tooltip, Legend);
-
-type DailyPoint = { date: string; amount: number };
-
-function iso(d: Date) {
-    return d.toISOString().slice(0, 10);
-}
-function startOfMonth(d = new Date()) {
-    return new Date(d.getFullYear(), d.getMonth(), 1);
-}
-function addDaysISO(isoDate: string, n: number) {
-    const d = new Date(isoDate);
-    d.setDate(d.getDate() + n);
-    return iso(d);
-}
-
-const mockMtdData = [
-    { date: "2025-09-01", amount: 280.15 },
-    { date: "2025-09-02", amount: 275.4 },
-    { date: "2025-09-03", amount: 290.8 },
-    { date: "2025-09-04", amount: 282.9 },
-    { date: "2025-09-05", amount: 295.0 },
-    { date: "2025-09-06", amount: 285.5 },
-    { date: "2025-09-07", amount: 295.1 },
-    { date: "2025-09-08", amount: 275.9 },
-    { date: "2025-09-09", amount: 950.7 }, // Spike
-    { date: "2025-09-10", amount: 310.2 },
-    { date: "2025-09-11", amount: 305.4 },
-    { date: "2025-09-12", amount: 299.8 },
-];
 
 export default function LiveCostOverview() {
     const { getSummary } = useCost();
@@ -57,11 +30,9 @@ export default function LiveCostOverview() {
             begin();
 
             try {
-                // Check environment variable to decide data source
                 if (process.env.NEXT_PUBLIC_MOCK_OVERVIEW === "1") {
                     const mockTrendData = mockMtdData.slice(-7);
 
-                    // Simulate network delay
                     await new Promise((resolve) => setTimeout(resolve, 300));
                     setTrend(mockTrendData);
                     setMtd(mockMtdData);
@@ -104,7 +75,6 @@ export default function LiveCostOverview() {
         return { totalMTD: total, burnRate: avg, projectedMonthly: proj };
     }, [mtd]);
 
-    // Anomaly detection on trend (z-score > 2)
     const chartData = useMemo(() => {
         const labels = trend.map((d) => d.date);
         const values = trend.map((d) => d.amount);
@@ -140,33 +110,6 @@ export default function LiveCostOverview() {
         }),
         []
     );
-
-    type InstanceStatusLabel = "Idle" | "Under Utilized" | "Optimal" | "Over Utilized" | "Unknown";
-    function classifyUtilizationWithUptime(cpuAvg: number, memAvg: number | null, uptimeHours: number, windowHours = 168) {
-        if (uptimeHours < 24) {
-            return { label: "Unknown" as InstanceStatusLabel, score: null as number | null };
-        }
-        const cpuNorm = Math.min(1, cpuAvg / 60);
-        const memNorm = memAvg !== null ? Math.min(1, memAvg / 70) : cpuNorm;
-        const coverage = Math.min(1, uptimeHours / windowHours);
-        const rawScore = 0.6 * cpuNorm + 0.4 * memNorm;
-        const adjusted = rawScore * coverage;
-        let label: InstanceStatusLabel;
-        if (cpuAvg < 3 && uptimeHours > 72) label = "Idle";
-        else if (adjusted < 0.4) label = "Under Utilized";
-        else if (adjusted > 0.7) label = "Over Utilized";
-        else label = "Optimal";
-        return { label, score: Number((adjusted * 100).toFixed(1)) };
-    }
-
-    const utilOrder: InstanceStatusLabel[] = ["Idle", "Under Utilized", "Optimal", "Over Utilized", "Unknown"];
-    const utilColors: Record<InstanceStatusLabel, string> = {
-        Idle: "#ef4444",
-        "Under Utilized": "#f87171",
-        Optimal: "#22c55e",
-        "Over Utilized": "#eab308",
-        Unknown: "#9ca3af",
-    };
 
     const utilCounts = useMemo(() => {
         const counts = new Map<InstanceStatusLabel, number>(utilOrder.map((k) => [k, 0]));
@@ -273,7 +216,48 @@ export default function LiveCostOverview() {
     );
 }
 
-function KPI({ title, value, hint }: { title: string; value: string; hint?: string }) {
+const mockMtdData: { date: string; amount: number }[] = [
+    { date: "2025-09-01", amount: 280.15 },
+    { date: "2025-09-02", amount: 275.4 },
+    { date: "2025-09-03", amount: 290.8 },
+    { date: "2025-09-04", amount: 282.9 },
+    { date: "2025-09-05", amount: 295.0 },
+    { date: "2025-09-06", amount: 285.5 },
+    { date: "2025-09-07", amount: 295.1 },
+    { date: "2025-09-08", amount: 275.9 },
+    { date: "2025-09-09", amount: 950.7 }, // Spike
+    { date: "2025-09-10", amount: 310.2 },
+    { date: "2025-09-11", amount: 305.4 },
+    { date: "2025-09-12", amount: 299.8 },
+];
+
+const utilOrder: InstanceStatusLabel[] = ["Idle", "Under Utilized", "Optimal", "Over Utilized", "Unknown"];
+const utilColors: Record<InstanceStatusLabel, string> = {
+    Idle: "#ef4444",
+    "Under Utilized": "#f87171",
+    Optimal: "#22c55e",
+    "Over Utilized": "#eab308",
+    Unknown: "#9ca3af",
+};
+
+const classifyUtilizationWithUptime = (cpuAvg: number, memAvg: number | null, uptimeHours: number, windowHours = 168) => {
+    if (uptimeHours < 24) {
+        return { label: "Unknown" as InstanceStatusLabel, score: null as number | null };
+    }
+    const cpuNorm = Math.min(1, cpuAvg / 60);
+    const memNorm = memAvg !== null ? Math.min(1, memAvg / 70) : cpuNorm;
+    const coverage = Math.min(1, uptimeHours / windowHours);
+    const rawScore = 0.6 * cpuNorm + 0.4 * memNorm;
+    const adjusted = rawScore * coverage;
+    let label: InstanceStatusLabel;
+    if (cpuAvg < 3 && uptimeHours > 72) label = "Idle";
+    else if (adjusted < 0.4) label = "Under Utilized";
+    else if (adjusted > 0.7) label = "Over Utilized";
+    else label = "Optimal";
+    return { label, score: Number((adjusted * 100).toFixed(1)) };
+};
+
+const KPI = ({ title, value, hint }: { title: string; value: string; hint?: string }) => {
     return (
         <div className="rounded-xl border border-gray-200 p-4">
             <div className="text-xs text-gray-500">{title}</div>
@@ -281,9 +265,9 @@ function KPI({ title, value, hint }: { title: string; value: string; hint?: stri
             {hint ? <div className="text-xs text-gray-400 mt-1">{hint}</div> : null}
         </div>
     );
-}
+};
 
-function SpikeCallouts({ data }: { data: DailyPoint[] }) {
+const SpikeCallouts = ({ data }: { data: DailyPoint[] }) => {
     if (!data?.length) return null;
     const vals = data.map((d) => d.amount);
     const mean = vals.reduce((a, b) => a + b, 0) / vals.length;
@@ -302,8 +286,4 @@ function SpikeCallouts({ data }: { data: DailyPoint[] }) {
             </ul>
         </div>
     );
-}
-
-function fmtUSD(n: number) {
-    return `$${n.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
-}
+};

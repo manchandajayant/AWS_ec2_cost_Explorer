@@ -47,3 +47,5 @@ export type DimensionValues = { key: string; values: string[]; source?: "mock" |
 export type TagValues = { key: string; values: string[]; source?: "mock" | "ce" };
 
 export type BreakdownFilters = Record<string, string[]>; // e.g., {"REGION":["eu-north-1"], "TAG:Team":["ML"]}
+
+export type Tab = "OVERVIEW" | "COMPARE";

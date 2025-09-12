@@ -1,11 +1,10 @@
+import GlobalLoader from "@/components/GlobalLoader";
 import SidebarLayout from "@/components/SidebarLayout";
+import { GlobalLoadingProvider } from "@/context/GlobalLoadingContext";
+import { UIProvider } from "@/context/UIContext";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { ThemeProvider } from "@/context/ThemeContext";
-import { UIProvider } from "@/context/UIContext";
-import { GlobalLoadingProvider } from "@/context/GlobalLoadingContext";
-import GlobalLoader from "@/components/GlobalLoader";
 
 const geistSans = Geist({
     variable: "--font-geist-sans",
@@ -25,16 +24,13 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
     return (
         <html lang="en" suppressHydrationWarning>
-            <head></head>
             <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}>
-                <ThemeProvider>
-                    <UIProvider>
-                        <GlobalLoadingProvider>
-                            <SidebarLayout>{children}</SidebarLayout>
-                            <GlobalLoader />
-                        </GlobalLoadingProvider>
-                    </UIProvider>
-                </ThemeProvider>
+                <UIProvider>
+                    <GlobalLoadingProvider>
+                        <SidebarLayout>{children}</SidebarLayout>
+                        <GlobalLoader />
+                    </GlobalLoadingProvider>
+                </UIProvider>
             </body>
         </html>
     );

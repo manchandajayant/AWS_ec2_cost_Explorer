@@ -142,18 +142,6 @@ function computeComponentsForPeriod(inst: Instance, periodStartISO: string, peri
     const infra = seededInfra(inst);
     const allDays = daysBetween(periodStartISO, periodEndISO);
     let totalComputeAmount = 0;
-    // for (const day of allDays) {
-    //     if (includeFuture === false && new Date(day) > MOCK_TODAY) {
-    //         continue;
-    //     }
-    //     const dayEnd = iso(new Date(new Date(day).getTime() + 24 * 3600 * 1000));
-    //     const dailyOverlapHours = Math.max(0, hoursOverlap(inst.launchTime, day, dayEnd));
-    //     if (dailyOverlapHours <= 0) continue;
-    //     const dailyHoursCap = signals.baseUptime;
-    //     const dailyComputeHours = Math.min(dailyOverlapHours, dailyHoursCap);
-    //     const dailyComputeAmount = metric === "UsageQuantity" ? dailyComputeHours : dailyComputeHours * spec.pricePerHour * seededFloat(inst.instanceId + day, 0.97, 1.05);
-    //     totalComputeAmount += dailyComputeAmount;
-    // }
     for (const day of allDays) {
         if (includeFuture === false && new Date(day) > MOCK_TODAY) {
             continue;

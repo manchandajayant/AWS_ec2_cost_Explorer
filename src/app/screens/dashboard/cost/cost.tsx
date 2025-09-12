@@ -1,13 +1,13 @@
 "use client";
 
-import { ModernDatePicker } from "@/components/DatePicker";
 import { FilterPill } from "@/components/FilterPill";
-import MonthPicker from "@/components/MonthPicker";
 import { CostProvider, useCost } from "@/context/CostContext";
-import type { BreakdownFilters, BreakdownRow, CostAttribution, CostBreakdown, CostSummary } from "@/types/cost/cost";
+import type { BreakdownFilters, BreakdownRow, CostAttribution, CostBreakdown, CostSummary, Tab } from "@/types/cost/cost";
 import { BarElement, CategoryScale, Chart as ChartJS, Legend, LinearScale, LineElement, PointElement, Tooltip } from "chart.js";
-import { useEffect, useMemo, useState } from "react";
+import { ReactElement, useEffect, useMemo, useState } from "react";
 import { Bar, Line } from "react-chartjs-2";
+import { Header } from "./header";
+import CostSidebar from "@/components/CostSidebar";
 
 ChartJS.register(LineElement, PointElement, BarElement, CategoryScale, LinearScale, Tooltip, Legend);
 
@@ -66,20 +66,7 @@ function detectSpikes(values: number[]): Set<number> {
     return spikes;
 }
 
-// (If needed later) helper to aggregate by date
-// function buildTotalSeriesByDate(rows: BreakdownRow[]) {
-//     const totals = new Map<string, number>();
-//     for (const r of rows) {
-//         totals.set(r.start, (totals.get(r.start) || 0) + r.amount);
-//     }
-//     const labels = Array.from(totals.keys()).sort();
-//     const data = labels.map((d) => totals.get(d) || 0);
-//     return { labels, data };
-// }
-
-type Tab = "OVERVIEW" | "COMPARE";
-
-function Inner() {
+const Inner: React.FC = (): ReactElement => {
     const { getBreakdown, getTags, getDimensions, getAttribution, getSummary } = useCost();
 
     // Shared state
@@ -118,9 +105,6 @@ function Inner() {
     const [compareA, setCompareA] = useState<CostBreakdown | null>(null);
     const [compareB, setCompareB] = useState<CostBreakdown | null>(null);
 
-    // Projections
-    const [showProjections, setShowProjections] = useState(false);
-
     // ---------- Tag helpers ----------
     const fetchTagKeys = async () => {
         // If you want to fetch available keys dynamically, add an API.
@@ -157,8 +141,6 @@ function Inner() {
     };
 
     const fetchOverview = async () => {
-        // For DAILY granularity, add one day to the user-selected end date.
-        // MONTHLY ranges from `monthToRange` are already correct.
         const apiEnd = granularity === "DAILY" ? addDays(end, 1) : end;
         const br = await getBreakdown({
             groupBy: [groupBy],
@@ -173,7 +155,6 @@ function Inner() {
     };
 
     const monthToRange = (m: string) => {
-        // m = "YYYY-MM"
         const [y, mm] = m.split("-").map(Number);
         const start = new Date(y, (mm ?? 1) - 1, 1);
         const end = new Date(y, mm ?? 1, 1); // exclusive
@@ -251,7 +232,7 @@ function Inner() {
         if (tab === "COMPARE") fetchCompare();
     }, [tab, groupBy, monthA, monthB, activeTagKey, selectedTagValues]);
 
-    // ---- Handlers ----
+    // Handlers
     const handleDateApply = (s: string, e: string) => {
         setStart(s);
         setEnd(e);
@@ -261,7 +242,7 @@ function Inner() {
         setSelectedTagValues((cur) => (cur.includes(v) ? cur.filter((x) => x !== v) : [...cur, v]));
     };
 
-    // ---- Derived data (Overview) ----
+    //Derived data (Overview)
     const { labels, datasets, topTotals } = useMemo(() => buildLineSeries(breakdown?.rows ?? [], topN === "ALL" ? Number.MAX_SAFE_INTEGER : topN), [breakdown, topN]);
     const maxTopSelectable = useMemo(() => {
         // Allow up to 50 or the number of groups available, whichever is smaller.
@@ -303,473 +284,36 @@ function Inner() {
     }, [end]);
     // Add this new useEffect inside your `Inner` component
 
-    useEffect(() => {
-        if (!breakdown) {
-            console.log("BREAKDOWN DATA CLEARED");
-            return;
-        }
-
-        console.group(`[DEBUG] Data updated for Granularity: ${granularity}`);
-
-        // 1. Calculate the total directly from the raw API response
-        const rawTotal = (breakdown.rows || []).reduce((sum, row) => sum + row.amount, 0);
-        console.log(`%cRAW API Total: $${rawTotal.toFixed(6)}`, "color: blue; font-weight: bold;");
-        console.log("Raw breakdown rows:", breakdown.rows);
-
-        // 2. Log the total calculated by your component's logic
-        console.log(`%cComponent-Calculated Total: $${total.toFixed(6)}`, "color: green; font-weight: bold;");
-        console.log("topTotals used for calculation:", topTotals);
-
-        if (Math.abs(rawTotal - total) > 0.01) {
-            console.error("%cMISMATCH DETECTED between raw API total and component total.", "color: red; font-size: 14px;");
-        } else {
-            console.log("%cTotals appear consistent.", "color: green;");
-        }
-
-        console.groupEnd();
-    }, [breakdown, total, granularity, topTotals]); // This will run whenever the data or the final total changes
     return (
         <>
             <div className="flex flex-col gap-4">
-                <div className="mb-1">
-                    <h2 className="text-base font-semibold text-gray-900">Costs Attributions</h2>
-                    <p className="text-sm text-gray-600">find in detail costs breakup by your deployment regions, instance type and custom tags</p>
-                </div>
-                {/* Tabs */}
-                <div className="flex items-center gap-2">
-                    <button
-                        type="button"
-                        className={`rounded-md px-3 py-2 text-sm font-semibold shadow-xs inset-ring inset-ring-gray-300 hover:bg-gray-50 ${tab === "OVERVIEW" ? "bg-gray-100" : "bg-white"}`}
-                        onClick={() => setTab("OVERVIEW")}
-                    >
-                        Overview
-                    </button>
-                    <button
-                        type="button"
-                        className={`rounded-md px-3 py-2 text-sm font-semibold shadow-xs inset-ring inset-ring-gray-300 hover:bg-gray-50 ${tab === "COMPARE" ? "bg-gray-100" : "bg-white"}`}
-                        onClick={() => setTab("COMPARE")}
-                    >
-                        Compare
-                    </button>
-                </div>
-
+                <Header setTab={setTab} tab={tab} />
                 <div className="flex gap-4">
                     {/* Sidebar */}
-                    <aside className="w-95 shrink-0 space-y-4">
-                        <div className="p-3 flex flex-col gap-3">
-                            {/* Sidebar content switches by tab */}
-                            {tab === "OVERVIEW" ? (
-                                <>
-                                    {/* Date range */}
-                                    <ModernDatePicker onApply={handleDateApply} initialStart={start} initialEnd={end} />
-                                    {/* Granularity */}
-                                    <div>
-                                        <div className="text-sm font-semibold mb-2">Granularity</div>
-                                        <div className="grid grid-cols-2 gap-2">
-                                            <button
-                                                className={`rounded-md px-3 py-2 text-sm shadow-xs ring-1 ring-inset hover:bg-gray-50 ${
-                                                    granularity === "DAILY" ? "bg-gray-100 ring-gray-400" : "bg-white ring-gray-300"
-                                                }`}
-                                                onClick={() => setGranularity("DAILY")}
-                                            >
-                                                Daily
-                                            </button>
-                                            <button
-                                                className={`rounded-md px-3 py-2 text-sm shadow-xs ring-1 ring-inset hover:bg-gray-50 ${
-                                                    granularity === "MONTHLY" ? "bg-gray-100 ring-gray-400" : "bg-white ring-gray-300"
-                                                }`}
-                                                onClick={() => setGranularity("MONTHLY")}
-                                            >
-                                                Monthly
-                                            </button>
-                                        </div>
-                                    </div>
-                                    {/* Group By */}
-                                    <div>
-                                        <div className="text-sm font-semibold mb-2">Group By</div>
-                                        <div className="grid grid-cols-3 gap-2">
-                                            <button
-                                                className={`rounded-md px-3 py-2 text-sm shadow-xs ring-1 ring-inset hover:bg-gray-50 ${
-                                                    groupBy === "REGION" ? "bg-gray-100 ring-gray-400" : "bg-white ring-gray-300"
-                                                }`}
-                                                onClick={() => setGroupBy("REGION")}
-                                            >
-                                                Region
-                                            </button>
-                                            <button
-                                                className={`rounded-md px-3 py-2 text-sm shadow-xs ring-1 ring-inset hover:bg-gray-50 ${
-                                                    groupBy === "INSTANCE_TYPE" ? "bg-gray-100 ring-gray-400" : "bg-white ring-gray-300"
-                                                }`}
-                                                onClick={() => setGroupBy("INSTANCE_TYPE")}
-                                            >
-                                                Instance Type
-                                            </button>
-                                            <button
-                                                className={`rounded-md px-3 py-2 text-sm shadow-xs ring-1 ring-inset hover:bg-gray-50 ${
-                                                    groupBy === "USAGE_TYPE" ? "bg-gray-100 ring-gray-400" : "bg-white ring-gray-300"
-                                                }`}
-                                                onClick={() => setGroupBy("USAGE_TYPE")}
-                                            >
-                                                Usage Type
-                                            </button>
-                                        </div>
-                                    </div>
-                                    {/* Chart Type */}
-                                    <div>
-                                        <div className="text-sm font-semibold mb-2">Chart Type</div>
-                                        <div className="grid grid-cols-2 gap-2">
-                                            <button
-                                                className={`rounded-md px-3 py-2 text-sm shadow-xs ring-1 ring-inset hover:bg-gray-50 ${
-                                                    chartType === "bar" ? "bg-gray-100 ring-gray-400" : "bg-white ring-gray-300"
-                                                }`}
-                                                onClick={() => setChartType("bar")}
-                                            >
-                                                Bar
-                                            </button>
-                                            <button
-                                                className={`rounded-md px-3 py-2 text-sm shadow-xs ring-1 ring-inset hover:bg-gray-50 ${
-                                                    chartType === "line" ? "bg-gray-100 ring-gray-400" : "bg-white ring-gray-300"
-                                                }`}
-                                                onClick={() => setChartType("line")}
-                                            >
-                                                Line
-                                            </button>
-                                        </div>
-                                    </div>
-                                    {/* Top N slider */}
-                                    <div>
-                                        <div className="flex items-center justify-between mb-2">
-                                            <div className="text-sm font-semibold">Top N</div>
-                                            <label className="flex items-center gap-2 text-xs text-gray-600">
-                                                <input
-                                                    type="checkbox"
-                                                    className="rounded border-gray-300"
-                                                    checked={topN === "ALL"}
-                                                    onChange={(e) => setTopN(e.target.checked ? "ALL" : Math.min(typeof topN === "number" ? topN : 10, maxTopSelectable))}
-                                                />
-                                                All
-                                            </label>
-                                        </div>
-                                        <div className="mt-1">
-                                            <input
-                                                type="range"
-                                                min={1}
-                                                max={maxTopSelectable}
-                                                step={1}
-                                                value={topN === "ALL" ? maxTopSelectable : topN}
-                                                onChange={(e) => setTopN(parseInt(e.target.value, 10))}
-                                                disabled={topN === "ALL"}
-                                                className="w-full accent-black"
-                                            />
-                                            <div className="mt-1 flex justify-between text-[10px] text-gray-500">
-                                                <span>1</span>
-                                                <span>{maxTopSelectable}</span>
-                                            </div>
-                                            <div className="mt-1 text-xs text-gray-600">
-                                                Showing top {topN === "ALL" ? "All" : topN} of {maxTopSelectable}
-                                            </div>
-                                        </div>
-                                    </div>
-                                    {/* Tag Filters */}
-                                    <div>
-                                        <div className="text-sm font-semibold mb-2">Filter by Tag</div>
-                                        <select className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm" value={activeTagKey} onChange={(e) => setActiveTagKey(e.target.value)}>
-                                            {tagKeys.map((k) => (
-                                                <option key={k} value={k}>
-                                                    {k}
-                                                </option>
-                                            ))}
-                                        </select>
-
-                                        {!!tagValues.length && (
-                                            <>
-                                                <div className="text-xs text-gray-500 mt-2">Values</div>
-                                                <div className="flex flex-wrap gap-2 mt-1">
-                                                    {tagValues.slice(0, 40).map((v) => {
-                                                        const active = selectedTagValues.includes(v);
-                                                        return (
-                                                            <button
-                                                                key={v}
-                                                                className={`rounded-md px-2.5 py-1.5 text-xs shadow-xs ring-1 ring-inset hover:bg-gray-50 ${
-                                                                    active ? "bg-gray-100 ring-gray-400" : "bg-white ring-gray-300"
-                                                                }`}
-                                                                onClick={() => toggleTagValue(v)}
-                                                            >
-                                                                {v}
-                                                            </button>
-                                                        );
-                                                    })}
-                                                </div>
-                                                {/* <div className="mt-2">
-                                                <button
-                                                    type="button"
-                                                    className="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-xs inset-ring inset-ring-gray-300 hover:bg-gray-50"
-                                                    onClick={() => fetchOverview()}
-                                                >
-                                                    Apply Filter
-                                                </button>
-                                                {!!selectedTagValues.length && (
-                                                    <button
-                                                        type="button"
-                                                        className="ml-2 rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-xs inset-ring inset-ring-gray-300 hover:bg-gray-50"
-                                                        onClick={() => {
-                                                            setSelectedTagValues([]);
-                                                            fetchOverview();
-                                                        }}
-                                                    >
-                                                        Clear
-                                                    </button>
-                                                )}
-                                            </div> */}
-                                            </>
-                                        )}
-                                    </div>
-                                    {/* Dimension Filters shared */}
-                                    {/* <div>
-                                    <div className="text-sm font-semibold mb-2">Filter by Dimension</div>
-                                    <select className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm" value={activeDimKey} onChange={(e) => setActiveDimKey(e.target.value as any)}>
-                                        {(["REGION", "INSTANCE_TYPE", "INSTANCE_FAMILY", "USAGE_TYPE"] as const).map((k) => (
-                                            <option key={k} value={k}>
-                                                {k}
-                                            </option>
-                                        ))}
-                                    </select>
-                                    {!!dimValues.length && (
-                                        <>
-                                            <div className="text-xs text-gray-500 mt-2">Values</div>
-                                            <div className="flex flex-wrap gap-2 mt-1">
-                                                {dimValues.slice(0, 40).map((v) => {
-                                                    const active = selectedDimValues.includes(v);
-                                                    return (
-                                                        <button
-                                                            key={v}
-                                                            className={`rounded-md px-2.5 py-1.5 text-xs font-medium shadow-xs ring-1 ring-inset hover:bg-gray-50 ${
-                                                                active ? "bg-gray-100 ring-gray-400" : "bg-white ring-gray-300"
-                                                            }`}
-                                                            onClick={() => setSelectedDimValues((cur) => (cur.includes(v) ? cur.filter((x) => x !== v) : [...cur, v]))}
-                                                        >
-                                                            {v}
-                                                        </button>
-                                                    );
-                                                })}
-                                            </div>
-                                            <div className="mt-2">
-                                                <button
-                                                    type="button"
-                                                    className="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-xs inset-ring inset-ring-gray-300 hover:bg-gray-50"
-                                                    onClick={() => fetchCompare()}
-                                                >
-                                                    Apply Filter
-                                                </button>
-                                                {!!selectedDimValues.length && (
-                                                    <button
-                                                        type="button"
-                                                        className="ml-2 rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-xs inset-ring inset-ring-gray-300 hover:bg-gray-50"
-                                                        onClick={() => {
-                                                            setSelectedDimValues([]);
-                                                            fetchCompare();
-                                                        }}
-                                                    >
-                                                        Clear
-                                                    </button>
-                                                )}
-                                            </div>
-                                        </>
-                                    )}
-                                </div> */}
-                                    {/* Dimension Filters */}
-                                    {/* <div>
-                                    <div className="text-sm font-semibold mb-2">Filter by Dimension</div>
-                                    <select className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm" value={activeDimKey} onChange={(e) => setActiveDimKey(e.target.value as any)}>
-                                        {(["REGION", "INSTANCE_TYPE", "INSTANCE_FAMILY", "USAGE_TYPE"] as const).map((k) => (
-                                            <option key={k} value={k}>
-                                                {k}
-                                            </option>
-                                        ))}
-                                    </select>
-                                    {!!dimValues.length && (
-                                        <>
-                                            <div className="text-xs text-gray-500 mt-2">Values</div>
-                                            <div className="flex flex-wrap gap-2 mt-1">
-                                                {dimValues.slice(0, 40).map((v) => {
-                                                    const active = selectedDimValues.includes(v);
-                                                    return (
-                                                        <button
-                                                            key={v}
-                                                            className={`rounded-md px-2.5 py-1.5 text-xs font-medium shadow-xs ring-1 ring-inset hover:bg-gray-50 ${
-                                                                active ? "bg-gray-100 ring-gray-400" : "bg-white ring-gray-300"
-                                                            }`}
-                                                            onClick={() => setSelectedDimValues((cur) => (cur.includes(v) ? cur.filter((x) => x !== v) : [...cur, v]))}
-                                                        >
-                                                            {v}
-                                                        </button>
-                                                    );
-                                                })}
-                                            </div>
-                                            <div className="mt-2">
-                                                <button
-                                                    type="button"
-                                                    className="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-xs inset-ring inset-ring-gray-300 hover:bg-gray-50"
-                                                    onClick={() => fetchOverview()}
-                                                >
-                                                    Apply Filter
-                                                </button>
-                                                {!!selectedDimValues.length && (
-                                                    <button
-                                                        type="button"
-                                                        className="ml-2 rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-xs inset-ring inset-ring-gray-300 hover:bg-gray-50"
-                                                        onClick={() => {
-                                                            setSelectedDimValues([]);
-                                                            fetchOverview();
-                                                        }}
-                                                    >
-                                                        Clear
-                                                    </button>
-                                                )}
-                                            </div>
-                                        </>
-                                    )}
-                                </div> */}
-                                    {/* Attribution coverage + Summary */}
-                                    {/* <div className="mt-2 text-xs text-slate-600">
-                                    {summary && (
-                                        <div className="mb-1">
-                                            Summary total: <b>{fmtUSD(summary.total)}</b>
-                                        </div>
-                                    )}
-                                    {attrCoverage && (
-                                        <div>
-                                            Coverage for {attrCoverage.tagKey}: <b>{fmtUSD(attrCoverage.attributed)}</b> / {fmtUSD(attrCoverage.total)}
-                                        </div>
-                                    )}
-                                </div> */}
-                                </>
-                            ) : (
-                                <>
-                                    {/* Compare sidebar (Month vs Month) */}
-                                    <div>
-                                        <MonthPicker
-                                            initialA={monthA}
-                                            initialB={monthB}
-                                            onApply={(a, b) => {
-                                                setMonthA(a);
-                                                setMonthB(b);
-                                            }}
-                                        />
-                                    </div>
-
-                                    {/* Group By for Compare */}
-                                    <div>
-                                        <div className="text-sm font-semibold mb-2">Group By</div>
-                                        <div className="grid grid-cols-3 gap-2">
-                                            <button
-                                                className={`rounded-md px-3 py-2 text-sm shadow-xs ring-1 ring-inset hover:bg-gray-50 ${
-                                                    groupBy === "REGION" ? "bg-gray-100 ring-gray-400" : "bg-white ring-gray-300"
-                                                }`}
-                                                onClick={() => setGroupBy("REGION")}
-                                            >
-                                                Region
-                                            </button>
-                                            <button
-                                                className={`rounded-md px-3 py-2 text-sm shadow-xs ring-1 ring-inset hover:bg-gray-50 ${
-                                                    groupBy === "INSTANCE_TYPE" ? "bg-gray-100 ring-gray-400" : "bg-white ring-gray-300"
-                                                }`}
-                                                onClick={() => setGroupBy("INSTANCE_TYPE")}
-                                            >
-                                                Instance Type
-                                            </button>
-                                            <button
-                                                className={`rounded-md px-3 py-2 text-sm shadow-xs ring-1 ring-inset hover:bg-gray-50 ${
-                                                    groupBy === "USAGE_TYPE" ? "bg-gray-100 ring-gray-400" : "bg-white ring-gray-300"
-                                                }`}
-                                                onClick={() => setGroupBy("USAGE_TYPE")}
-                                            >
-                                                Usage Type
-                                            </button>
-                                        </div>
-                                    </div>
-
-                                    {/* Chart Type */}
-                                    <div>
-                                        <div className="text-sm font-semibold mb-2">Chart Type</div>
-                                        <div className="grid grid-cols-2 gap-2">
-                                            <button
-                                                className={`rounded-md px-3 py-2 text-sm shadow-xs ring-1 ring-inset hover:bg-gray-50 ${
-                                                    chartType === "bar" ? "bg-gray-100 ring-gray-400" : "bg-white ring-gray-300"
-                                                }`}
-                                                onClick={() => setChartType("bar")}
-                                            >
-                                                Bar
-                                            </button>
-                                            <button
-                                                className={`rounded-md px-3 py-2 text-sm shadow-xs ring-1 ring-inset hover:bg-gray-50 ${
-                                                    chartType === "line" ? "bg-gray-100 ring-gray-400" : "bg-white ring-gray-300"
-                                                }`}
-                                                onClick={() => setChartType("line")}
-                                            >
-                                                Line
-                                            </button>
-                                        </div>
-                                    </div>
-
-                                    {/* Tag Filters shared */}
-                                    <div>
-                                        <div className="text-sm font-semibold mb-2">Filter by Tag</div>
-                                        <select className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm" value={activeTagKey} onChange={(e) => setActiveTagKey(e.target.value)}>
-                                            {tagKeys.map((k) => (
-                                                <option key={k} value={k}>
-                                                    {k}
-                                                </option>
-                                            ))}
-                                        </select>
-
-                                        {!!tagValues.length && (
-                                            <>
-                                                <div className="text-xs text-gray-500 mt-2">Values</div>
-                                                <div className="flex flex-wrap gap-2 mt-1">
-                                                    {tagValues.slice(0, 40).map((v) => {
-                                                        const active = selectedTagValues.includes(v);
-                                                        return (
-                                                            <button
-                                                                key={v}
-                                                                className={`rounded-md px-2.5 py-1.5 text-xs shadow-xs ring-1 ring-inset hover:bg-gray-50 ${
-                                                                    active ? "bg-gray-100 ring-gray-400" : "bg-white ring-gray-300"
-                                                                }`}
-                                                                onClick={() => toggleTagValue(v)}
-                                                            >
-                                                                {v}
-                                                            </button>
-                                                        );
-                                                    })}
-                                                </div>
-                                                {/* <div className="mt-2">
-                                                <button
-                                                    type="button"
-                                                    className="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-xs inset-ring inset-ring-gray-300 hover:bg-gray-50"
-                                                    onClick={() => fetchCompare()}
-                                                >
-                                                    Apply Filter
-                                                </button>
-                                                {!!selectedTagValues.length && (
-                                                    <button
-                                                        type="button"
-                                                        className="ml-2 rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-xs inset-ring inset-ring-gray-300 hover:bg-gray-50"
-                                                        onClick={() => {
-                                                            setSelectedTagValues([]);
-                                                            fetchCompare();
-                                                        }}
-                                                    >
-                                                        Clear
-                                                    </button>
-                                                )}
-                                            </div> */}
-                                            </>
-                                        )}
-                                    </div>
-                                </>
-                            )}
-                        </div>
-                    </aside>
+                    <CostSidebar
+                        tab={tab}
+                        start={start}
+                        end={end}
+                        onApplyDateRange={handleDateApply}
+                        granularity={granularity}
+                        setGranularity={setGranularity}
+                        groupBy={groupBy}
+                        setGroupBy={setGroupBy}
+                        chartType={chartType}
+                        setChartType={setChartType}
+                        tagKeys={tagKeys}
+                        activeTagKey={activeTagKey}
+                        setActiveTagKey={setActiveTagKey}
+                        tagValues={tagValues}
+                        selectedTagValues={selectedTagValues}
+                        toggleTagValue={toggleTagValue}
+                        monthA={monthA}
+                        monthB={monthB}
+                        onApplyMonths={(a: string, b: string) => {
+                            setMonthA(a);
+                            setMonthB(b);
+                        }}
+                    />
 
                     {/* Main content */}
                     <main className="flex-1 space-y-4">
@@ -1137,7 +681,7 @@ function Inner() {
             </div>
         </>
     );
-}
+};
 
 export default function CostExplorerChart() {
     return (

@@ -1,16 +1,8 @@
-import DashboardPage from "./parent";
+import DashboardPage from "./screens/dashboard/dashboard";
 
 export default function Home() {
     return (
         <main>
-            {/* <div className="h-4" />
-            <CostSection />
-            <section id="instances">
-                <InstancesProvider>
-                    <Instances />
-                    <MockInstances />
-                </InstancesProvider>
-            </section>  */}
             <DashboardPage />
         </main>
     );
