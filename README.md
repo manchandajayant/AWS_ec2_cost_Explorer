@@ -1,7 +1,8 @@
 # Elastic Observer - Technical Guide
 
 ## Introduction :
-   This document provides a technical overview of Elastic Oberver, an EC2 Observability Prototype, built with Next.js, typescript. 
+
+This document provides a technical overview of Elastic Oberver, an EC2 Observability Prototype, built with Next.js, typescript.
 
 ![[Screenshot 2025-09-12 at 11.47.37 PM.png]]
 
@@ -23,12 +24,8 @@ AWS_SECRET_ACCESS_KEY=your_secret_key
 AWS_REGION=your_default_region
 
 The above lets you run the code with AWS access keys, however the code also runs with a configured mock API for mock data, just make all the below keys as 1 for them to work in your .env.local file
+USE_MOCK=1
 NEXT_PUBLIC_USE_MOCK=1
-MOCK_COST=1
-MOCK_METRICS=1
-NEXT_PUBLIC_MOCK_OVERVIEW=1
-
-
 
 ## REPOSITORY
 
@@ -59,7 +56,6 @@ The mock cost data is **deterministic** and designed to look realistic while mir
 -   **Anomalies**: 15% of days are “spike days,” with compute cost multiplied 3×–7× to create realistic cost spikes.
 -   **Filters and grouping** follow AWS Cost Explorer semantics for region, instance type, tags, and usage type.
 -   All randomness is **seeded**, ensuring the same inputs always produce the same results.
-
 
 ## Core Components
 
@@ -93,7 +89,7 @@ By using a heuristic-based scoring system, the classification should remain **in
 
 ---
 
-###  Cost Attribution Panel
+### Cost Attribution Panel
 
 This panel helps users understand **how EC2 costs map back** to scientific jobs, teams, or infrastructure dimensions.
 
@@ -128,11 +124,9 @@ The UI intentionally limits grouping and filtering options to these key dimensio
 (Overview with line chart)
 ![[Screenshot 2025-09-12 at 11.13.29 PM.png]]
 
-
 **COST ATTRIBUTION COMPONENT**
 (Overview with bar chart)
 ![[Screenshot 2025-09-12 at 11.13.44 PM.png]]
-
 
 **COST ATTRIBUTION COMPONENT**
 (Overview with tag filters)
@@ -143,6 +137,7 @@ The UI intentionally limits grouping and filtering options to these key dimensio
 ![[Screenshot 2025-09-12 at 11.14.17 PM.png]]
 
 ---
+
 ### Live Cloud Cost Overview
 
 This panel sits at the top of the dashboard and provides an overall summary to the user.
