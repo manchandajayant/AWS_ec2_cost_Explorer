@@ -1,0 +1,134 @@
+{
+  "instances": [
+    {
+      "region": "eu-north-1",
+      "instanceId": "i-345ea865f3675d",
+      "type": "t3.medium",
+      "state": "running",
+      "availabilityZone": "eu-north-1a",
+      "launchTime": "2025-07-30T10:45:52Z",
+      "tags": {
+        "Project": "Prediction",
+        "Name": "PREDICTION_91",
+        "Team": "Data-processing"
+      }
+    },
+    {
+      "region": "us-east-1",
+      "instanceId": "i-8cf663a9bf0cd6",
+      "type": "p3.2xlarge",
+      "state": "running",
+      "availabilityZone": "us-east-1a",
+      "launchTime": "2025-07-30T10:44:36Z",
+      "tags": {
+        "Project": "Analysis",
+        "Name": "ANALYSIS_86",
+        "Team": "Bioinformatics"
+      }
+    },
+    {
+      "region": "eu-west-1",
+      "instanceId": "i-ebccd083bcc8f4",
+      "type": "c5n.4xlarge",
+      "state": "running",
+      "availabilityZone": "eu-west-1b",
+      "launchTime": "2025-08-24T23:56:08Z",
+      "tags": {
+        "Project": "Gene",
+        "Name": "GENE_28",
+        "Team": "Data-processing"
+      }
+    },
+    {
+      "region": "eu-north-1",
+      "instanceId": "i-ee505aeb88b036",
+      "type": "m7i-flex.large",
+      "state": "running",
+      "availabilityZone": "eu-north-1c",
+      "launchTime": "2025-07-20T22:42:21Z",
+      "tags": {
+        "Project": "Protein",
+        "Name": "PROTEIN_86",
+        "Team": "Bioinformatics"
+      }
+    },
+    {
+      "region": "us-west-2",
+      "instanceId": "i-113e8c8a703dbe9",
+      "type": "t3.large",
+      "state": "running",
+      "availabilityZone": "us-west-2c",
+      "launchTime": "2025-09-02T09:44:13Z",
+      "tags": {
+        "Project": "Gene",
+        "Name": "GENE_48",
+        "Team": "Research"
+      }
+    },
+    {
+      "region": "eu-north-1",
+      "instanceId": "i-eea3c17d8bbff1",
+      "type": "t3.large",
+      "state": "running",
+      "availabilityZone": "eu-north-1b",
+      "launchTime": "2025-07-20T19:59:37Z",
+      "tags": {
+        "Project": "Prediction",
+        "Name": "PREDICTION_63",
+        "Team": "Bioinformatics"
+      }
+    },
+    {
+      "region": "us-west-2",
+      "instanceId": "i-13fa75f4564b253",
+      "type": "m7i-flex.large",
+      "state": "running",
+      "availabilityZone": "us-west-2b",
+      "launchTime": "2025-08-15T00:46:50Z",
+      "tags": {
+        "Project": "Analysis",
+        "Name": "ANALYSIS_56",
+        "Team": "Machine Learning"
+      }
+    },
+    {
+      "region": "us-east-1",
+      "instanceId": "i-8117b0080ff7b3",
+      "type": "m5.xlarge",
+      "state": "running",
+      "availabilityZone": "us-east-1c",
+      "launchTime": "2025-06-16T00:50:04Z",
+      "tags": {
+        "Project": "Analysis",
+        "Name": "ANALYSIS_11",
+        "Team": "Bioinformatics"
+      }
+    },
+    {
+      "region": "eu-west-1",
+      "instanceId": "i-1630a6d95c4d783",
+      "type": "m7i-flex.large",
+      "state": "running",
+      "availabilityZone": "eu-west-1a",
+      "launchTime": "2025-08-30T12:50:16Z",
+      "tags": {
+        "Project": "Protein",
+        "Name": "PROTEIN_81",
+        "Team": "Research"
+      }
+    },
+    {
+      "region": "us-west-2",
+      "instanceId": "i-1258c1c73669b8e",
+      "type": "g4dn.xlarge",
+      "state": "running",
+      "availabilityZone": "us-west-2d",
+      "launchTime": "2025-08-29T17:28:03Z",
+      "tags": {
+        "Project": "Analysis",
+        "Name": "ANALYSIS_78",
+        "Team": "Data-processing"
+      }
+    }
+  ]
+}
