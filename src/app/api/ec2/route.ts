@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 // This method gets all EC2 instances across all regions
 export async function GET(_req: NextRequest) {
     try {
-        if (process.env.NEXT_PUBLIC_USE_MOCK === "1") {
+        if (process.env.USE_MOCK === "1") {
             const data = await mockData();
             if (data.error) {
                 return new Response(JSON.stringify({ error: data.error }), {

@@ -30,7 +30,7 @@ export default function LiveCostOverview() {
             begin();
 
             try {
-                if (process.env.NEXT_PUBLIC_MOCK_OVERVIEW === "1") {
+                if (process.env.NEXT_PUBLIC_USE_MOCK === "1") {
                     const mockTrendData = mockMtdData.slice(-7);
 
                     await new Promise((resolve) => setTimeout(resolve, 300));

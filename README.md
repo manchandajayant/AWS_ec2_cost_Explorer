@@ -1,6 +1,6 @@
-Elastic Observer - Technical Guide
+# Elastic Observer - Technical Guide
 
-Introduction :
+## Introduction :
    This document provides a technical overview of Elastic Oberver, an EC2 Observability Prototype, built with Next.js, typescript. 
 
 ![[Screenshot 2025-09-12 at 11.47.37 PM.png]]
@@ -28,6 +28,23 @@ MOCK_COST=1
 MOCK_METRICS=1
 NEXT_PUBLIC_MOCK_OVERVIEW=1
 
+
+
+## REPOSITORY
+
+**Repository Structure**
+The main structure for our use case is built across
+
+src/
+├── app/
+│ ├── api/ # AWS & Mock API routes
+│ └── screens/ # Main pages: Overview, Cost Attributions, EC2 Table
+├── components/ # Reusable UI components
+├── context/ # Global state: CostContext, EC2Context, Filters
+└── utils/ # Helper functions (date utils, formatting)
+
+## DATA
+
 **Note on mock data** :
 To design a decent product system, a big part of this task was to understand how AWS handled cost explorer API and other ec2 instance realted API's. For this a solid set of data was really important. Rather than setup mock-data files, I setup a mock database system which mostly mimicked the AWS API barring some changes.
 
@@ -43,20 +60,10 @@ The mock cost data is **deterministic** and designed to look realistic while mir
 -   **Filters and grouping** follow AWS Cost Explorer semantics for region, instance type, tags, and usage type.
 -   All randomness is **seeded**, ensuring the same inputs always produce the same results.
 
-Repository Structure
-The main structure for our use case is built across
 
-src/
-├── app/
-│ ├── api/ # AWS & Mock API routes
-│ └── screens/ # Main pages: Overview, Cost Attributions, EC2 Table
-├── components/ # Reusable UI components
-├── context/ # Global state: CostContext, EC2Context, Filters
-└── utils/ # Helper functions (date utils, formatting)
+## Core Components
 
-### Core Components
-
-1. EC2 Instance Utilisation Table
+### EC2 Instance Utilisation Table
 
 This table provides a detailed, at-a-glance view of all running EC2 instances.
 
@@ -86,7 +93,7 @@ By using a heuristic-based scoring system, the classification should remain **in
 
 ---
 
-2. Component 2. Cost Attribution Panel
+###  Cost Attribution Panel
 
 This panel helps users understand **how EC2 costs map back** to scientific jobs, teams, or infrastructure dimensions.
 
@@ -136,7 +143,7 @@ The UI intentionally limits grouping and filtering options to these key dimensio
 ![[Screenshot 2025-09-12 at 11.14.17 PM.png]]
 
 ---
-3. Live Cloud Cost Overview
+### Live Cloud Cost Overview
 
 This panel sits at the top of the dashboard and provides an overall summary to the user.
 
@@ -149,11 +156,11 @@ This section is divided into two parts:
 -   **Trend:** 7-day line chart of daily cost
 -   **Anomaly Cues:** Highlights spikes (≥ ~2σ) with red points and a callout list of spike dates and amounts.
     -   Mean and standard deviation across the 7-day values are computed, and points with `(v - mean)/sd > 2` are flagged.
-    -   Spikes are visually emphasized (larger red points) and listed in **SpikeCallouts**.
+    -   Spikes are visually emphasised (larger red points) and listed in **SpikeCallouts**.
 
 **Second part shows:**
 
--   **Risk Strip:** A compact bar chart of instance utilization states (Idle / Under / Optimal / Over / Unknown), plus an alert summarizing the count of potentially cost-driving instances (Idle + Under + Over).
+-   **Risk Strip:** A compact bar chart of instance utilisation states (Idle / Under / Optimal / Over / Unknown), plus an alert summarising the count of potentially cost-driving instances (Idle + Under + Over).
 -   **SpikeCallouts:** A lightweight anomaly panel listing outlier days so decision-makers can act quickly without combing through the entire chart.
 
 These two elements were chosen to give the user a high-level, quick view of what might be going wrong.  

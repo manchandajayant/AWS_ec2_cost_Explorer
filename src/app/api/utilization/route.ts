@@ -11,7 +11,7 @@ export async function GET(req: NextRequest) {
         const instanceId = url.searchParams.get("instanceId");
         const region = url.searchParams.get("region") || process.env.AWS_REGION || "us-east-1";
         const days = Math.max(7, Number(url.searchParams.get("days") || 7));
-        const useMock = url.searchParams.get("mock") === "1" || process.env.MOCK_METRICS === "1";
+        const useMock = url.searchParams.get("mock") === "1" || process.env.USE_MOCK === "1";
         const force = url.searchParams.get("force") || undefined;
 
         if (!instanceId) {

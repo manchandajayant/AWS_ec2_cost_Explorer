@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 export async function GET(req: NextRequest) {
     try {
         const { metric, granularity, start, end, u } = parseCommon(req.url);
-        const useMock = u.searchParams.get("mock") === "1" || process.env.MOCK_COST === "1";
+        const useMock = u.searchParams.get("mock") === "1" || process.env.USE_MOCK === "1";
         const tagKey = u.searchParams.get("tag") || "Team";
         const includeFuture = u.searchParams.get("includeFuture") === "1";
 

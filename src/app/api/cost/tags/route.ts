@@ -10,7 +10,7 @@ export async function GET(req: NextRequest) {
     try {
         const { start, end, u } = parseCommon(req.url);
         const key = u.searchParams.get("key") || "Team";
-        const useMock = u.searchParams.get("mock") === "1" || process.env.MOCK_COST === "1";
+        const useMock = u.searchParams.get("mock") === "1" || process.env.USE_MOCK === "1";
 
         const res = useMock
             ? mockGetTags({ start, end, tagKey: key })
