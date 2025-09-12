@@ -1,36 +1,20 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+tracer_dashboard
+================
 
-## Getting Started
+AWS EC2 Instances Integration
+-----------------------------
 
-First, run the development server:
+The Instances page now fetches real EC2 instances from your AWS account via a Next.js API route.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+Environment variables (set for `next dev`/`next start`):
+- `AWS_ACCESS_KEY_ID`
+- `AWS_SECRET_ACCESS_KEY`
+- `AWS_SESSION_TOKEN` (if using temporary creds)
+- `AWS_REGION` (single region) or `AWS_REGIONS` (comma-separated, e.g. `us-east-1,us-west-2`)
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+API
+- `GET /api/ec2/instances` returns `{ instances: Ec2Instance[] }` where each instance contains id, type, region, state, launchTime, project. CPU/RAM/GPU are placeholders (0) for now.
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Notes
+- Tag `Project` (or `project`/`Name`) populates the Project column.
+- CPU/RAM/GPU and waste scoring can be wired to CloudWatch in a follow‑up.

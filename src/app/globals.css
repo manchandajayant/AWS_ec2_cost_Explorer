@@ -1,26 +1,45 @@
 @import "tailwindcss";
 
+/* Light theme (default) */
 :root {
-  --background: #ffffff;
+  --background: #fcfcfcb0;
   --foreground: #171717;
+  /* Sidebar theme tokens (light) */
+  --sidebar-bg: #ffffff;
+  /* white */
+  --sidebar-fg: #1f2937;
+  /* slate-800 */
+  --sidebar-border: #e5e7eb;
+  /* slate-200 */
+  --sidebar-hover-bg: #f1f5f9;
+  /* slate-100 */
 }
 
-@theme inline {
+/* Tailwind v4 inline theme tokens using our CSS vars */
+:root {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* Dark theme when `.dark` is present on `<html>` */
+.dark {
+  --background: #000000e6;
+  --foreground: #fefefe;
+  /* Sidebar theme tokens (dark) */
+  --sidebar-bg: #0f172a;
+  /* slate-900 */
+  --sidebar-fg: #e5e7eb;
+  /* slate-200 */
+  --sidebar-border: #334155;
+  /* slate-700 */
+  --sidebar-hover-bg: #1f2937;
+  /* slate-800 */
 }
 
+/* Base body styles; use Tailwind tokens for consistency */
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
 }
