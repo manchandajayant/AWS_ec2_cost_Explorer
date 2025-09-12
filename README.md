@@ -1,5 +1,7 @@
 # Elastic Observer - Technical Guide
 
+[APP LIVE HERE](https://tracer-dashboard-orcin.vercel.app/)
+
 ## Introduction :
 
 This document provides a technical overview of Elastic Oberver, an EC2 Observability Prototype, built with Next.js, typescript.
