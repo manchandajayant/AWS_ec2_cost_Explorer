@@ -1,204 +1,10 @@
 "use client";
-import { ChevronDown, MoreHorizontal, Cpu, HardDrive, CircuitBoard, Gauge, Clock, DollarSign } from "lucide-react";
+import { badgeClasses, metricBarClassFromValue, metricBorderClassFromValue, metricTextClassFromValue, metricTrackClassFromValue, pct, SORT_OPTIONS, statusBorderClass, usd } from "@/app/utils/helpers";
+import { Direction, InstanceStatus, SortableKey } from "@/types/ec2/types";
+import { ChevronDown, CircuitBoard, Clock, Cpu, DollarSign, Gauge, HardDrive, MoreHorizontal } from "lucide-react";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 
-type InstanceStatus = "Under Utilized" | "Optimal" | "Over Utilized" | "Idle" | "Unknown";
-
-function badgeClasses(status: InstanceStatus) {
-    switch (status) {
-        case "Optimal":
-            return "bg-green-50 text-green-700 ring-1 ring-inset ring-green-600/20";
-        case "Idle":
-            return "bg-red-200 text-red-700 ring-1 ring-inset ring-red-700/30";
-        case "Over Utilized":
-            return "bg-yellow-50 text-yellow-700 ring-1 ring-inset ring-yellow-600/20";
-        case "Under Utilized":
-            return "bg-red-100 text-red-500 ring-1 ring-inset ring-red-500/20";
-        case "Unknown":
-            return "bg-gray-100 text-gray-600 ring-1 ring-inset ring-gray-500/20";
-        default:
-            return "bg-gray-100 text-slate-700 ring-1 ring-inset ring-slate-400/30";
-    }
-}
-
-// Left status bar
-function statusBorderClass(status: InstanceStatus) {
-    switch (status) {
-        case "Optimal":
-            return "border-l-4 border-green-500/70";
-        case "Idle":
-            return "border-l-4 border-red-500/70";
-        case "Over Utilized":
-            return "border-l-4 border-yellow-500/70";
-        case "Under Utilized":
-            return "border-l-4 border-red-400/70";
-        case "Unknown":
-            return "border-l-4 border-gray-400/70";
-        default:
-            return "border-l-4 border-slate-300/70";
-    }
-}
-
-function pct(n: number | null | undefined) {
-    if (typeof n !== "number" || !Number.isFinite(n)) return "N/A";
-    const clamped = Math.max(0, Math.min(100, n));
-    return `${clamped.toFixed(0)}%`;
-}
-function usd(n: number) {
-    return `$${Number(n || 0).toFixed(3)}`;
-}
-
-// Utilization color helpers based on status label
-function utilBarClass(status: InstanceStatus) {
-    switch (status) {
-        case "Idle":
-        case "Under Utilized":
-            return "bg-red-500";
-        case "Optimal":
-            return "bg-green-500";
-        case "Over Utilized":
-            return "bg-amber-500"; // dark yellow / orange
-        case "Unknown":
-        default:
-            return "bg-slate-400";
-    }
-}
-function utilTrackClass(status: InstanceStatus) {
-    switch (status) {
-        case "Idle":
-        case "Under Utilized":
-            return "bg-red-100";
-        case "Optimal":
-            return "bg-green-100";
-        case "Over Utilized":
-            return "bg-amber-100";
-        case "Unknown":
-        default:
-            return "bg-slate-200";
-    }
-}
-function utilTextClass(status: InstanceStatus) {
-    switch (status) {
-        case "Idle":
-        case "Under Utilized":
-            return "text-red-600";
-        case "Optimal":
-            return "text-green-600";
-        case "Over Utilized":
-            return "text-amber-600";
-        case "Unknown":
-        default:
-            return "text-slate-600";
-    }
-}
-function utilBorderClass(status: InstanceStatus) {
-    switch (status) {
-        case "Idle":
-        case "Under Utilized":
-            return "border-red-200";
-        case "Optimal":
-            return "border-green-200";
-        case "Over Utilized":
-            return "border-amber-200";
-        case "Unknown":
-        default:
-            return "border-slate-200";
-    }
-}
-
-// Metric-specific color helpers (mixed cases):
-// Red for idle/under, green for optimal, amber for over.
-type UtilCategory = "idle_under" | "optimal" | "over" | "unknown";
-function metricCategory(value: number | null | undefined): UtilCategory {
-    const v = typeof value === "number" && Number.isFinite(value) ? value : null;
-    if (v === null) return "unknown";
-    if (v < 3) return "idle_under"; // idle
-    if (v < 40) return "idle_under"; // under-utilized
-    if (v > 70) return "over"; // over-utilized
-    return "optimal"; // 40-70
-}
-function metricBarClassFromValue(value: number | null | undefined) {
-    const c = metricCategory(value);
-    if (c === "idle_under") return "bg-red-500";
-    if (c === "optimal") return "bg-green-500";
-    if (c === "over") return "bg-amber-500";
-    return "bg-slate-400";
-}
-function metricTrackClassFromValue(value: number | null | undefined) {
-    const c = metricCategory(value);
-    if (c === "idle_under") return "bg-red-100";
-    if (c === "optimal") return "bg-green-100";
-    if (c === "over") return "bg-amber-100";
-    return "bg-slate-200";
-}
-function metricTextClassFromValue(value: number | null | undefined) {
-    const c = metricCategory(value);
-    if (c === "idle_under") return "text-red-600";
-    if (c === "optimal") return "text-green-600";
-    if (c === "over") return "text-amber-600";
-    return "text-slate-600";
-}
-function metricBorderClassFromValue(value: number | null | undefined) {
-    const c = metricCategory(value);
-    if (c === "idle_under") return "border-red-200";
-    if (c === "optimal") return "border-green-200";
-    if (c === "over") return "border-amber-200";
-    return "border-slate-200";
-}
-
-// ---------- Multi-sort controls ----------
-type SortableKey = "statusLabel" | "region" | "type";
-type Direction = "asc" | "desc";
-
-const SORT_OPTIONS: { label: string; value: SortableKey }[] = [
-    { label: "Status", value: "statusLabel" },
-    { label: "Region", value: "region" },
-    { label: "Instance Type", value: "type" },
-];
-
-// Basic multiselect with checkboxes (selection order = priority)
-function MultiSelect({ label, options, selected, onChange }: { label: string; options: { label: string; value: SortableKey }[]; selected: SortableKey[]; onChange: (values: SortableKey[]) => void }) {
-    const [open, setOpen] = useState(false);
-    const ref = useRef<HTMLDivElement>(null);
-    useEffect(() => {
-        const onDoc = (e: MouseEvent) => {
-            if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-        };
-        document.addEventListener("mousedown", onDoc);
-        return () => document.removeEventListener("mousedown", onDoc);
-    }, []);
-    const toggle = (v: SortableKey) => {
-        if (selected.includes(v)) onChange(selected.filter((x) => x !== v));
-        else onChange([...selected, v]);
-    };
-    return (
-        <div className="relative" ref={ref}>
-            <button
-                type="button"
-                onClick={() => setOpen((o) => !o)}
-                className="w-full bg-white border border-slate-300 rounded-md px-3 py-2 text-sm text-left flex justify-between items-center text-slate-700 hover:bg-slate-50"
-            >
-                <span>
-                    {label}
-                    {selected.length > 0 ? ` (${selected.length})` : ""}
-                </span>
-                <ChevronDown size={16} className={`transition-transform ${open ? "rotate-180" : ""}`} />
-            </button>
-            {open && (
-                <div className="absolute z-10 w-full mt-1 bg-white border border-slate-300 rounded-md shadow-lg max-h-60 overflow-auto">
-                    {options.map((opt) => (
-                        <label key={opt.value} className="px-3 py-2 text-sm hover:bg-slate-100 cursor-pointer flex items-center text-slate-700">
-                            <input type="checkbox" className="mr-2" checked={selected.includes(opt.value)} onChange={() => toggle(opt.value)} />
-                            {opt.label}
-                        </label>
-                    ))}
-                </div>
-            )}
-        </div>
-    );
-}
-
-export default function InstancesTable({ instances }: { instances: any[] }) {
+const InstancesTable = ({ instances }: { instances: any[] }) => {
     // Multi-sort state
     const [sortKeys, setSortKeys] = useState<SortableKey[]>(["statusLabel"]); // default by Status
     const [directions, setDirections] = useState<Record<SortableKey, Direction>>({
@@ -213,11 +19,7 @@ export default function InstancesTable({ instances }: { instances: any[] }) {
     // Simple progress bar for percentages with customizable colors
     const Bar = ({ value, barClass = "bg-blue-500", trackClass = "bg-slate-200" }: { value: number | null | undefined; barClass?: string; trackClass?: string }) => {
         const v = typeof value === "number" && Number.isFinite(value) ? Math.max(0, Math.min(100, value)) : null;
-        return (
-            <div className={`h-2 w-full rounded-full ${trackClass}`}>
-                {v !== null && <div className={`h-2 rounded-full ${barClass}`} style={{ width: `${v}%` }} />}
-            </div>
-        );
+        return <div className={`h-2 w-full rounded-full ${trackClass}`}>{v !== null && <div className={`h-2 rounded-full ${barClass}`} style={{ width: `${v}%` }} />}</div>;
     };
 
     const moveUp = (k: SortableKey) => {
@@ -328,7 +130,7 @@ export default function InstancesTable({ instances }: { instances: any[] }) {
                         <tbody>
                             {sorted.map((it: any) => (
                                 <Fragment key={it.id}>
-                                <tr className="border-b border-border hover:bg-muted/50">
+                                    <tr className="border-b border-border hover:bg-muted/50">
                                         <td className={`px-4 py-3 font-medium text-foreground whitespace-nowrap ${statusBorderClass(it.statusLabel as InstanceStatus)}`}>{it.id}</td>
                                         <td className="px-4 py-3 whitespace-nowrap">
                                             <span title={it.statusReason} className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ${badgeClasses(it.statusLabel as InstanceStatus)}`}>
@@ -354,31 +156,62 @@ export default function InstancesTable({ instances }: { instances: any[] }) {
                                                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                                                     <div className="flex items-center gap-3 rounded-md border bg-white px-3 py-2 border-indigo-200">
                                                         <Cpu size={16} className="text-indigo-600" />
-                                                        <div className="text-sm"><div className="text-muted-foreground">vCPU</div><div className="font-medium text-foreground">{it.vcpu}</div></div>
+                                                        <div className="text-sm">
+                                                            <div className="text-muted-foreground">vCPU</div>
+                                                            <div className="font-medium text-foreground">{it.vcpu}</div>
+                                                        </div>
                                                     </div>
                                                     <div className="flex items-center gap-3 rounded-md border bg-white px-3 py-2 border-emerald-200">
                                                         <HardDrive size={16} className="text-emerald-600" />
-                                                        <div className="text-sm"><div className="text-muted-foreground">RAM</div><div className="font-medium text-foreground">{it.ramGB} GB</div></div>
+                                                        <div className="text-sm">
+                                                            <div className="text-muted-foreground">RAM</div>
+                                                            <div className="font-medium text-foreground">{it.ramGB} GB</div>
+                                                        </div>
                                                     </div>
                                                     <div className="flex items-center gap-3 rounded-md border bg-white px-3 py-2 border-purple-200">
                                                         <CircuitBoard size={16} className="text-purple-600" />
-                                                        <div className="text-sm"><div className="text-muted-foreground">GPU</div><div className="font-medium text-foreground">{it.gpu ?? 0}</div></div>
+                                                        <div className="text-sm">
+                                                            <div className="text-muted-foreground">GPU</div>
+                                                            <div className="font-medium text-foreground">{it.gpu ?? 0}</div>
+                                                        </div>
                                                     </div>
                                                     <div className="flex items-center gap-3 rounded-md border bg-white px-3 py-2 border-amber-200">
                                                         <DollarSign size={16} className="text-amber-600" />
-                                                        <div className="text-sm"><div className="text-muted-foreground">$ / hr</div><div className="font-medium text-foreground">{usd(it.pricePerHour)}</div></div>
+                                                        <div className="text-sm">
+                                                            <div className="text-muted-foreground">$ / hr</div>
+                                                            <div className="font-medium text-foreground">{usd(it.pricePerHour)}</div>
+                                                        </div>
                                                     </div>
                                                     <div className="flex items-center gap-3 rounded-md border bg-white px-3 py-2 border-sky-200">
                                                         <Clock size={16} className="text-sky-600" />
-                                                        <div className="text-sm"><div className="text-muted-foreground">Uptime (h)</div><div className="font-medium text-foreground">{it.uptimeHours}</div></div>
+                                                        <div className="text-sm">
+                                                            <div className="text-muted-foreground">Uptime (h)</div>
+                                                            <div className="font-medium text-foreground">{it.uptimeHours}</div>
+                                                        </div>
                                                     </div>
                                                     <div className={`rounded-md border bg-white px-3 py-2 ${metricBorderClassFromValue(it.cpuAvg7d)}`}>
-                                                        <div className="flex items-center gap-2 text-sm mb-1"><Gauge size={16} className={metricTextClassFromValue(it.cpuAvg7d)} /><span className="text-muted-foreground">CPU avg (7d)</span><span className="ml-auto font-medium text-foreground">{pct(it.cpuAvg7d)}</span></div>
-                                                        <Bar value={typeof it.cpuAvg7d === "number" ? it.cpuAvg7d : null} barClass={metricBarClassFromValue(it.cpuAvg7d)} trackClass={metricTrackClassFromValue(it.cpuAvg7d)} />
+                                                        <div className="flex items-center gap-2 text-sm mb-1">
+                                                            <Gauge size={16} className={metricTextClassFromValue(it.cpuAvg7d)} />
+                                                            <span className="text-muted-foreground">CPU avg (7d)</span>
+                                                            <span className="ml-auto font-medium text-foreground">{pct(it.cpuAvg7d)}</span>
+                                                        </div>
+                                                        <Bar
+                                                            value={typeof it.cpuAvg7d === "number" ? it.cpuAvg7d : null}
+                                                            barClass={metricBarClassFromValue(it.cpuAvg7d)}
+                                                            trackClass={metricTrackClassFromValue(it.cpuAvg7d)}
+                                                        />
                                                     </div>
                                                     <div className={`rounded-md border bg-white px-3 py-2 ${metricBorderClassFromValue(it.memAvg7d)}`}>
-                                                        <div className="flex items-center gap-2 text-sm mb-1"><Gauge size={16} className={metricTextClassFromValue(it.memAvg7d)} /><span className="text-muted-foreground">Mem avg (7d)</span><span className="ml-auto font-medium text-foreground">{pct(it.memAvg7d)}</span></div>
-                                                        <Bar value={typeof it.memAvg7d === "number" ? it.memAvg7d : null} barClass={metricBarClassFromValue(it.memAvg7d)} trackClass={metricTrackClassFromValue(it.memAvg7d)} />
+                                                        <div className="flex items-center gap-2 text-sm mb-1">
+                                                            <Gauge size={16} className={metricTextClassFromValue(it.memAvg7d)} />
+                                                            <span className="text-muted-foreground">Mem avg (7d)</span>
+                                                            <span className="ml-auto font-medium text-foreground">{pct(it.memAvg7d)}</span>
+                                                        </div>
+                                                        <Bar
+                                                            value={typeof it.memAvg7d === "number" ? it.memAvg7d : null}
+                                                            barClass={metricBarClassFromValue(it.memAvg7d)}
+                                                            trackClass={metricTrackClassFromValue(it.memAvg7d)}
+                                                        />
                                                     </div>
                                                 </div>
                                             </td>
@@ -399,4 +232,47 @@ export default function InstancesTable({ instances }: { instances: any[] }) {
             </div>
         </div>
     );
-}
+};
+
+const MultiSelect = ({ label, options, selected, onChange }: { label: string; options: { label: string; value: SortableKey }[]; selected: SortableKey[]; onChange: (values: SortableKey[]) => void }) => {
+    const [open, setOpen] = useState(false);
+    const ref = useRef<HTMLDivElement>(null);
+    useEffect(() => {
+        const onDoc = (e: MouseEvent) => {
+            if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+        };
+        document.addEventListener("mousedown", onDoc);
+        return () => document.removeEventListener("mousedown", onDoc);
+    }, []);
+    const toggle = (v: SortableKey) => {
+        if (selected.includes(v)) onChange(selected.filter((x) => x !== v));
+        else onChange([...selected, v]);
+    };
+    return (
+        <div className="relative" ref={ref}>
+            <button
+                type="button"
+                onClick={() => setOpen((o) => !o)}
+                className="w-full bg-white border border-slate-300 rounded-md px-3 py-2 text-sm text-left flex justify-between items-center text-slate-700 hover:bg-slate-50"
+            >
+                <span>
+                    {label}
+                    {selected.length > 0 ? ` (${selected.length})` : ""}
+                </span>
+                <ChevronDown size={16} className={`transition-transform ${open ? "rotate-180" : ""}`} />
+            </button>
+            {open && (
+                <div className="absolute z-10 w-full mt-1 bg-white border border-slate-300 rounded-md shadow-lg max-h-60 overflow-auto">
+                    {options.map((opt) => (
+                        <label key={opt.value} className="px-3 py-2 text-sm hover:bg-slate-100 cursor-pointer flex items-center text-slate-700">
+                            <input type="checkbox" className="mr-2" checked={selected.includes(opt.value)} onChange={() => toggle(opt.value)} />
+                            {opt.label}
+                        </label>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+};
+
+export default InstancesTable;

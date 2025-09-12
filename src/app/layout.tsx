@@ -1,5 +1,5 @@
-import GlobalLoader from "@/components/GlobalLoader";
-import SidebarLayout from "@/components/SidebarLayout";
+import GlobalLoader from "@/components/global-loader";
+import SidebarLayout from "@/components/sidebar-layout";
 import { GlobalLoadingProvider } from "@/context/GlobalLoadingContext";
 import { UIProvider } from "@/context/UIContext";
 import type { Metadata } from "next";

@@ -4,8 +4,8 @@ import React, { ReactElement } from "react";
 import { CostProvider } from "@/context/CostContext";
 import { Ec2Provider } from "@/context/EC2Context";
 import Cost from "./cost/cost";
-import InstancesList from "./ec2-table";
-import Overview from "./overview";
+import InstancesList from "./ec2-table/ec2-tables";
+import Overview from "./overview/overview";
 
 const DashboardPage: React.FC = (): ReactElement => (
     <main className="bg-slate-50 h-full flex flex-col p-3 sm:p-4 lg:p-6">

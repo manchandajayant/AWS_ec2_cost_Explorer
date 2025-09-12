@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import React from "react";
 
-type NavItem = { href: string; label: string; icon: React.ReactNode };
+export type NavItem = { href: string; label: string; icon: React.ReactNode };
 
 const navItems: NavItem[] = [
     { href: "/#workspace", label: "Workspace", icon: <LayoutDashboard size={18} /> },
@@ -17,7 +17,6 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
 
     return (
         <div className="h-screen overflow-hidden flex flex-col bg-background text-foreground">
-            {/* Full-width top header */}
             <header className="shrink-0 h-14 border-b flex items-center justify-between px-3 bg-white dark:bg-background w-full">
                 <div className="flex items-center gap-2 bg-black">
                     <Image src="/tracer-logo.webp" alt="Tracer" width={150} height={150} className="rounded" />
@@ -32,7 +31,6 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
                 </button>
             </header>
 
-            {/* Body row: sidebar + content */}
             <div className="flex flex-1 overflow-hidden">
                 <aside
                     className={`shrink-0 h-full overflow-hidden border-r transition-all duration-200 ease-in-out ${

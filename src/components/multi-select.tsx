@@ -1,13 +1,7 @@
 "use client";
+import { MultiSelectProps } from "@/types/cost/cost";
 import { ChevronDown, Filter, X } from "lucide-react";
 import { FC, useEffect, useMemo, useRef, useState } from "react";
-
-export interface MultiSelectProps {
-    label: string;
-    options: string[];
-    selected: string[];
-    onChange: (values: string[]) => void;
-}
 
 const MultiSelect: FC<MultiSelectProps> = ({ label, options, selected, onChange }) => {
     const [open, setOpen] = useState(false);
@@ -73,10 +67,7 @@ const MultiSelect: FC<MultiSelectProps> = ({ label, options, selected, onChange 
                     ) : (
                         <>
                             {displayChips.map((chip) => (
-                                <span
-                                    key={chip}
-                                    className="inline-flex items-center gap-1 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded px-1.5 py-0.5 text-xs"
-                                >
+                                <span key={chip} className="inline-flex items-center gap-1 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded px-1.5 py-0.5 text-xs">
                                     {chip}
                                     <span
                                         onClick={(e) => {
@@ -91,11 +82,7 @@ const MultiSelect: FC<MultiSelectProps> = ({ label, options, selected, onChange 
                                     </span>
                                 </span>
                             ))}
-                            {remaining > 0 && (
-                                <span className="inline-flex items-center bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded px-1.5 py-0.5 text-xs">
-                                    +{remaining}
-                                </span>
-                            )}
+                            {remaining > 0 && <span className="inline-flex items-center bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded px-1.5 py-0.5 text-xs">+{remaining}</span>}
                         </>
                     )}
                 </div>

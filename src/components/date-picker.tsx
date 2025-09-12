@@ -1,38 +1,6 @@
+import { CalendarDropdownProps, CalendarState, DateRange, ModernDatePickerProps, PresetOption } from "@/types/cost/cost";
 import { Calendar, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 import React, { useEffect, useRef, useState } from "react";
-
-// Type definitions
-interface CalendarState {
-    month: number;
-    year: number;
-}
-
-interface DateRange {
-    start: string;
-    end: string;
-}
-
-interface PresetOption {
-    label: string;
-    days: number;
-}
-
-interface ModernDatePickerProps {
-    onApply?: (start: string, end: string) => void;
-    initialStart?: string;
-    initialEnd?: string;
-    disabled?: boolean;
-    className?: string;
-}
-
-interface CalendarDropdownProps {
-    isStart: boolean;
-    calendar: CalendarState;
-    start: string;
-    end: string;
-    onDateSelect: (day: number | null, isStart: boolean) => void;
-    onNavigateMonth: (direction: number, isStart: boolean) => void;
-}
 
 export const ModernDatePicker: React.FC<ModernDatePickerProps> = ({ onApply, initialStart = "", initialEnd = "", disabled = false, className = "" }) => {
     const [start, setStart] = useState<string>(initialStart);

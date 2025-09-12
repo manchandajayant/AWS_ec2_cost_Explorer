@@ -49,3 +49,51 @@ export type TagValues = { key: string; values: string[]; source?: "mock" | "ce" 
 export type BreakdownFilters = Record<string, string[]>; // e.g., {"REGION":["eu-north-1"], "TAG:Team":["ML"]}
 
 export type Tab = "OVERVIEW" | "COMPARE";
+
+// Type definitions
+export interface CalendarState {
+    month: number;
+    year: number;
+}
+
+export interface DateRange {
+    start: string;
+    end: string;
+}
+
+export interface PresetOption {
+    label: string;
+    days: number;
+}
+
+export interface ModernDatePickerProps {
+    onApply?: (start: string, end: string) => void;
+    initialStart?: string;
+    initialEnd?: string;
+    disabled?: boolean;
+    className?: string;
+}
+
+export interface CalendarDropdownProps {
+    isStart: boolean;
+    calendar: CalendarState;
+    start: string;
+    end: string;
+    onDateSelect: (day: number | null, isStart: boolean) => void;
+    onNavigateMonth: (direction: number, isStart: boolean) => void;
+}
+
+export type MonthPickerProps = {
+    initialA?: string; // YYYY-MM
+    initialB?: string; // YYYY-MM
+    onApply?: (monthA: string, monthB: string) => void;
+    disabled?: boolean;
+    className?: string;
+};
+
+export interface MultiSelectProps {
+    label: string;
+    options: string[];
+    selected: string[];
+    onChange: (values: string[]) => void;
+}

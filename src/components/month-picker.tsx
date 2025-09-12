@@ -1,28 +1,7 @@
+import { parseYYYYMM, toYYYYMM } from "@/app/utils/helpers";
+import { MonthPickerProps } from "@/types/cost/cost";
 import { Calendar, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 import React, { useEffect, useRef, useState } from "react";
-
-type MonthPickerProps = {
-    initialA?: string; // YYYY-MM
-    initialB?: string; // YYYY-MM
-    onApply?: (monthA: string, monthB: string) => void;
-    disabled?: boolean;
-    className?: string;
-};
-
-const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-
-function parseYYYYMM(s?: string): { year: number; month: number } {
-    if (!s) {
-        const d = new Date();
-        return { year: d.getFullYear(), month: d.getMonth() };
-    }
-    const [y, m] = s.split("-").map((x) => parseInt(x, 10));
-    return { year: isNaN(y) ? new Date().getFullYear() : y, month: isNaN(m) ? new Date().getMonth() : Math.min(11, Math.max(0, (m || 1) - 1)) };
-}
-
-function toYYYYMM(year: number, monthIndex: number): string {
-    return `${year}-${String(monthIndex + 1).padStart(2, "0")}`;
-}
 
 export const MonthPicker: React.FC<MonthPickerProps> = ({ initialA, initialB, onApply, disabled, className = "" }) => {
     const [a, setA] = useState<string>(initialA || toYYYYMM(new Date().getFullYear(), new Date().getMonth()));
@@ -140,5 +119,7 @@ export const MonthPicker: React.FC<MonthPickerProps> = ({ initialA, initialB, on
         </div>
     );
 };
+
+const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
 export default MonthPicker;
