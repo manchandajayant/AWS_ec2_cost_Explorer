@@ -51,6 +51,17 @@ function buildLineSeries(rows: BreakdownRow[], topN = 5) {
     return { labels: dates, datasets, topTotals: totals };
 }
 
+// (If needed later) helper to aggregate by date
+// function buildTotalSeriesByDate(rows: BreakdownRow[]) {
+//     const totals = new Map<string, number>();
+//     for (const r of rows) {
+//         totals.set(r.start, (totals.get(r.start) || 0) + r.amount);
+//     }
+//     const labels = Array.from(totals.keys()).sort();
+//     const data = labels.map((d) => totals.get(d) || 0);
+//     return { labels, data };
+// }
+
 type Tab = "OVERVIEW" | "COMPARE";
 
 function Inner() {
@@ -184,6 +195,7 @@ function Inner() {
     // ---- Derived data (Overview) ----
     const { labels, datasets, topTotals } = useMemo(() => buildLineSeries(breakdown?.rows ?? [], 5), [breakdown]);
     const total = useMemo(() => topTotals.reduce((s, d) => s + d.value, 0), [topTotals]);
+    const beyondToday = useMemo(() => end > todayISO(), [end]);
 
     // ---- Derived data (Compare) ----
     const totalsA = useMemo(() => aggregateTotals(compareA?.rows ?? []), [compareA]);
@@ -477,38 +489,67 @@ function Inner() {
                     {tab === "OVERVIEW" ? (
                         <>
                             {/* Chart */}
-                            <div className="w-full" style={{ height: 420 }}>
-                                {chartType === "line" ? (
-                                    <Line
-                                        data={{ labels, datasets }}
-                                        options={{
-                                            maintainAspectRatio: false,
-                                            plugins: { legend: { position: "bottom" } },
-                                            scales: { y: { beginAtZero: true } },
-                                            interaction: { mode: "index", intersect: false },
-                                            elements: { point: { radius: 2 } },
-                                        }}
-                                    />
-                                ) : (
-                                    <Bar
-                                        data={{
-                                            labels: topTotals.map((t) => t.name),
-                                            datasets: [
-                                                {
-                                                    label: `${groupBy} Cost`,
-                                                    data: topTotals.map((t) => t.value),
-                                                    backgroundColor: topTotals.map((_, i) => COLORS[i % COLORS.length]),
-                                                },
-                                            ],
-                                        }}
-                                        options={{
-                                            maintainAspectRatio: false,
-                                            plugins: { legend: { position: "bottom" } },
-                                            scales: { x: { ticks: { maxRotation: 30, minRotation: 0 } }, y: { beginAtZero: true } },
-                                            interaction: { mode: "index", intersect: false },
-                                        }}
-                                    />
+                            <div className="w-full relative" style={{ height: 420 }}>
+                                {beyondToday && (
+                                    <div className="absolute top-0 left-0 right-0 text-center text-xs text-slate-600 border-t border-dashed border-slate-400 py-1 bg-white/70">
+                                        Dates in the future are estimated based on trends
+                                    </div>
                                 )}
+                                <div className={beyondToday ? "pt-6 h-full" : "h-full"}>
+                                {(() => {
+                                    const today = todayISO();
+                                    const isFutureIdx = (idx: number) => {
+                                        const d = labels[idx];
+                                        return d > today;
+                                    };
+                                    if (chartType === "line") {
+                                        // Add dotted segments for future dates
+                                        const lineData = {
+                                            labels,
+                                            datasets: (datasets as any).map((ds: any) => ({
+                                                ...ds,
+                                                segment: {
+                                                    borderDash: (ctx: any) => (isFutureIdx(ctx.p1DataIndex) ? [4, 4] : undefined),
+                                                },
+                                            })),
+                                        };
+                                        return (
+                                            <Line
+                                                data={lineData}
+                                                options={{
+                                                    maintainAspectRatio: false,
+                                                    plugins: { legend: { position: "bottom" } },
+                                                    scales: { y: { beginAtZero: true } },
+                                                    interaction: { mode: "index", intersect: false },
+                                                    elements: { point: { radius: 2 } },
+                                                }}
+                                            />
+                                        );
+                                    }
+                                    // Bar: outline-only for future bars
+                                    const barData = {
+                                        labels,
+                                        datasets: (datasets as any).map((ds: any, i: number) => ({
+                                            label: ds.label,
+                                            data: ds.data,
+                                            backgroundColor: labels.map((_: any, idx: number) => (isFutureIdx(idx) ? "rgba(0,0,0,0)" : COLORS[i % COLORS.length])),
+                                            borderColor: labels.map((_: any, idx: number) => (isFutureIdx(idx) ? "#94a3b8" : COLORS[i % COLORS.length])), // slate-400
+                                            borderWidth: labels.map((_: any, idx: number) => (isFutureIdx(idx) ? 2 : 0)),
+                                        })),
+                                    } as any;
+                                    return (
+                                        <Bar
+                                            data={barData}
+                                            options={{
+                                                maintainAspectRatio: false,
+                                                plugins: { legend: { position: "bottom" } },
+                                                scales: { x: { ticks: { maxRotation: 30, minRotation: 0 } }, y: { beginAtZero: true } },
+                                                interaction: { mode: "index", intersect: false },
+                                            }}
+                                        />
+                                    );
+                                })()}
+                                </div>
                             </div>
 
                             {/* Table */}
@@ -551,30 +592,65 @@ function Inner() {
                     ) : (
                         <>
                             {/* Compare Chart */}
-                            <div className="w-full" style={{ height: 420 }}>
-                                {chartType === "line" ? (
-                                    <Line
-                                        data={compareBarData}
-                                        options={{
-                                            maintainAspectRatio: false,
-                                            plugins: { legend: { position: "bottom" } },
-                                            scales: { y: { beginAtZero: true } },
-                                            interaction: { mode: "index", intersect: false },
-                                            elements: { point: { radius: 2 } },
-                                        }}
-                                    />
-                                ) : (
-                                    <Bar
-                                        data={compareBarData}
-                                        options={{
-                                            maintainAspectRatio: false,
-                                            plugins: { legend: { position: "bottom" } },
-                                            scales: { x: { ticks: { maxRotation: 30, minRotation: 0 } }, y: { beginAtZero: true } },
-                                            interaction: { mode: "index", intersect: false },
-                                        }}
-                                    />
-                                )}
-                            </div>
+                            {(() => {
+                                const currentMonth = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}`;
+                                const futureA = monthA > currentMonth;
+                                const futureB = monthB > currentMonth;
+                                const showBanner = futureA || futureB;
+                                return (
+                                    <div className="w-full relative" style={{ height: 420 }}>
+                                        {showBanner && (
+                                            <div className="absolute top-0 left-0 right-0 text-center text-xs text-slate-600 border-t border-dashed border-slate-400 py-1 bg-white/70">
+                                                Future months are estimated based on trends
+                                            </div>
+                                        )}
+                                        <div className={showBanner ? "pt-6 h-full" : "h-full"}>
+                                            {chartType === "line" ? (
+                                                <Line
+                                                    data={{
+                                                        labels: compareBarData.labels,
+                                                        datasets: (compareBarData.datasets as any).map((ds: any) => ({
+                                                            ...ds,
+                                                            segment: {
+                                                                borderDash: () => (ds.label === monthA && futureA) || (ds.label === monthB && futureB) ? [4, 4] : undefined,
+                                                            },
+                                                        })),
+                                                    }}
+                                                    options={{
+                                                        maintainAspectRatio: false,
+                                                        plugins: { legend: { position: "bottom" } },
+                                                        scales: { y: { beginAtZero: true } },
+                                                        interaction: { mode: "index", intersect: false },
+                                                        elements: { point: { radius: 2 } },
+                                                    }}
+                                                />
+                                            ) : (
+                                                <Bar
+                                                    data={{
+                                                        labels: compareBarData.labels,
+                                                        datasets: (compareBarData.datasets as any).map((ds: any, idx: number) => {
+                                                            const isFuture = (ds.label === monthA && futureA) || (ds.label === monthB && futureB);
+                                                            const color = COLORS[idx % COLORS.length];
+                                                            return {
+                                                                ...ds,
+                                                                backgroundColor: isFuture ? "rgba(0,0,0,0)" : color,
+                                                                borderColor: isFuture ? "#94a3b8" : color,
+                                                                borderWidth: isFuture ? 2 : 0,
+                                                            };
+                                                        }),
+                                                    }}
+                                                    options={{
+                                                        maintainAspectRatio: false,
+                                                        plugins: { legend: { position: "bottom" } },
+                                                        scales: { x: { ticks: { maxRotation: 30, minRotation: 0 } }, y: { beginAtZero: true } },
+                                                        interaction: { mode: "index", intersect: false },
+                                                    }}
+                                                />
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            })()}
 
                             {/* Compare Table */}
                             <div className="px-4 sm:px-6 lg:px-8">
