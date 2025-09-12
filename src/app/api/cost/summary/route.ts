@@ -10,9 +10,10 @@ export async function GET(req: NextRequest) {
     try {
         const { metric, granularity, start, end, u } = parseCommon(req.url);
         const useMock = u.searchParams.get("mock") === "1" || process.env.MOCK_COST === "1";
+        const includeFuture = u.searchParams.get("includeFuture") === "1";
 
         const res = useMock
-            ? mockGetCostAndUsage({ start, end, granularity, metric })
+            ? mockGetCostAndUsage({ start, end, granularity, metric, includeFuture })
             : await ce.send(
                   new GetCostAndUsageCommand({
                       TimePeriod: { Start: start, End: end },

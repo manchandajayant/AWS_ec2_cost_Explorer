@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
         const filter = buildFilterFromJSON(filterJSON);
 
         const res = useMock
-            ? mockGetCostAndUsage({ start, end, granularity, metric, groupBy: groupDefs as any, filter: filter as any })
+            ? mockGetCostAndUsage({ start, end, granularity, metric, groupBy: groupDefs as any, filter: filter as any, includeFuture: u.searchParams.get("includeFuture") === "1" })
             : await ce.send(
                   new GetCostAndUsageCommand({
                       TimePeriod: { Start: start, End: end },

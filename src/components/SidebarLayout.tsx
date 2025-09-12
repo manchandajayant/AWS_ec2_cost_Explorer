@@ -2,6 +2,7 @@
 import React from "react";
 import Link from "next/link";
 import { BarChart3, CircleDollarSign, LayoutDashboard, Menu, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import Image from "next/image";
 import ThemeToggle from "@/components/ThemeToggle";
 import { useUI } from "@/context/UIContext";
 
@@ -23,8 +24,8 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
         } bg-[var(--sidebar-bg)] text-[color:var(--sidebar-fg)] border-[color:var(--sidebar-border)]`}
       >
         <div className="h-14 flex items-center gap-2 px-3 border-b border-[color:var(--sidebar-border)]">
-          <LayoutDashboard size={18} className="text-[color:var(--sidebar-fg)] opacity-70" />
-          {!collapsed && <span className="font-semibold text-[color:var(--sidebar-fg)]">Dashboard</span>}
+          <Image src="/tracer-logo.webp" alt="Elastic Observer" width={18} height={18} className="rounded" />
+          {!collapsed && <span className="font-semibold text-[color:var(--sidebar-fg)]">Elastic Observer</span>}
           <button
             aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
             className="ml-auto inline-flex items-center justify-center rounded border px-2 py-1 text-xs hover:bg-[var(--sidebar-hover-bg)] text-[color:var(--sidebar-fg)] border-[color:var(--sidebar-border)]"
@@ -52,7 +53,7 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
 
       <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
         <header className="sticky top-0 z-10 h-14 border-b flex items-center justify-between px-3 bg-white dark:bg-background">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <button
               aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
               className="inline-flex items-center justify-center rounded border px-2 py-1 text-xs hover:bg-slate-100 dark:hover:bg-muted text-slate-700 dark:text-foreground border-slate-300 dark:border-border"
@@ -61,7 +62,10 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
             >
               <Menu size={16} />
             </button>
-            <span className="text-sm text-slate-600 dark:text-muted-foreground hidden sm:inline">EC2 Utilization & Cost Overview</span>
+            <div className="items-center gap-2 hidden sm:flex">
+              <Image src="/tracer-logo.webp" alt="Elastic Observer" width={20} height={20} className="rounded" />
+              <span className="text-sm font-semibold text-slate-800 dark:text-foreground">Elastic Observer</span>
+            </div>
           </div>
           <ThemeToggle />
         </header>

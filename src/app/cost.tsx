@@ -1,9 +1,10 @@
 "use client";
 
 import { ModernDatePicker } from "@/components/DatePicker";
+import { FilterPill } from "@/components/FilterPill";
 import MonthPicker from "@/components/MonthPicker";
 import { CostProvider, useCost } from "@/context/CostContext";
-import type { BreakdownFilters, BreakdownRow, CostBreakdown } from "@/types/cost/cost";
+import type { BreakdownFilters, BreakdownRow, CostAttribution, CostBreakdown, CostSummary } from "@/types/cost/cost";
 import { BarElement, CategoryScale, Chart as ChartJS, Legend, LinearScale, LineElement, PointElement, Tooltip } from "chart.js";
 import { useEffect, useMemo, useState } from "react";
 import { Bar, Line } from "react-chartjs-2";
@@ -12,13 +13,13 @@ ChartJS.register(LineElement, PointElement, BarElement, CategoryScale, LinearSca
 
 const fmtUSD = (n: number) => `$${n.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
 const todayISO = () => new Date().toISOString().slice(0, 10);
-const addDays = (iso: string, d: number) => {
+export const addDays = (iso: string, d: number) => {
     const dt = new Date(iso);
     dt.setDate(dt.getDate() + d);
     return dt.toISOString().slice(0, 10);
 };
 const last30 = () => ({ start: addDays(todayISO(), -30), end: todayISO() });
-const COLORS = ["#4F46E5", "#06B6D4", "#22C55E", "#F59E0B", "#EF4444", "#8B5CF6", "#10B981", "#F97316", "#14B8A6", "#3B82F6"];
+const COLORS = ["#a7a2ffff", "#9de3f0ff", "#75e29dff", "#e8be75ff", "#ee7272ff", "#a787f2ff", "#77dbbaff", "#ffaf76ff", "#86e4d9ff", "#9bc1ffff"];
 
 function aggregateTotals(rows: BreakdownRow[]) {
     const totals = new Map<string, number>();
@@ -65,36 +66,51 @@ function buildLineSeries(rows: BreakdownRow[], topN = 5) {
 type Tab = "OVERVIEW" | "COMPARE";
 
 function Inner() {
-    const { getBreakdown, getTags } = useCost();
+    const { getBreakdown, getTags, getDimensions, getAttribution, getSummary } = useCost();
 
-    // ---- Shared state ----
+    // Shared state
     const [tab, setTab] = useState<Tab>("OVERVIEW");
-    const [groupBy, setGroupBy] = useState<"REGION" | "INSTANCE_TYPE">("REGION");
+    const [groupBy, setGroupBy] = useState<"REGION" | "INSTANCE_TYPE" | "USAGE_TYPE">("REGION");
     const [chartType, setChartType] = useState<"line" | "bar">("bar"); // default bar
+    const [topN, setTopN] = useState<number | "ALL">(5);
 
-    // ---- Overview state ----
+    // Overview state
     const [granularity, setGranularity] = useState<"DAILY" | "MONTHLY">("MONTHLY");
     const [start, setStart] = useState<string>(last30().start);
     const [end, setEnd] = useState<string>(last30().end);
     const [breakdown, setBreakdown] = useState<CostBreakdown | null>(null);
 
-    // ---- Tag filter state (used in both tabs) ----
+    // Tag filter state (used in both tabs)
+    const AVAILABLE_TAG_KEYS = ["Team", "Project"]; // adjust if backend exposes more
     const [tagKeys, setTagKeys] = useState<string[]>([]);
     const [activeTagKey, setActiveTagKey] = useState<string>("");
     const [tagValues, setTagValues] = useState<string[]>([]);
     const [selectedTagValues, setSelectedTagValues] = useState<string[]>([]);
 
-    // ---- Compare (Month vs Month) ----
+    // Dimension filter state
+    const DIM_KEYS: ("REGION" | "INSTANCE_TYPE" | "INSTANCE_FAMILY" | "USAGE_TYPE")[] = ["REGION", "INSTANCE_TYPE", "INSTANCE_FAMILY", "USAGE_TYPE"];
+    const [activeDimKey, setActiveDimKey] = useState<"REGION" | "INSTANCE_TYPE" | "INSTANCE_FAMILY" | "USAGE_TYPE">("REGION");
+    const [dimValues, setDimValues] = useState<string[]>([]);
+    const [selectedDimValues, setSelectedDimValues] = useState<string[]>([]);
+
+    // Attribution + Summary (to inform filtering)
+    const [attrCoverage, setAttrCoverage] = useState<CostAttribution | null>(null);
+    const [summary, setSummary] = useState<CostSummary | null>(null);
+
+    // Compare (Month vs Month)
     const yyyymm = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
     const [monthA, setMonthA] = useState<string>(yyyymm());
     const [monthB, setMonthB] = useState<string>(yyyymm(new Date(new Date().setMonth(new Date().getMonth() - 1))));
     const [compareA, setCompareA] = useState<CostBreakdown | null>(null);
     const [compareB, setCompareB] = useState<CostBreakdown | null>(null);
 
+    // Projections
+    const [showProjections, setShowProjections] = useState(false);
+
     // ---------- Tag helpers ----------
     const fetchTagKeys = async () => {
-        const res = await getTags({ key: "KEYS", start, end });
-        const keys = (res as any)?.keys ?? (res as any)?.values ?? (Array.isArray(res) ? res : []);
+        // If you want to fetch available keys dynamically, add an API.
+        const keys = AVAILABLE_TAG_KEYS;
         setTagKeys(keys);
         if (!activeTagKey && keys.length) setActiveTagKey(keys[0]);
     };
@@ -112,19 +128,31 @@ function Inner() {
         setSelectedTagValues((sel) => sel.filter((v) => vals.includes(v)));
     };
 
+    const fetchDimValues = async (key: typeof activeDimKey) => {
+        const res = await getDimensions({ key, start, end });
+        const vals = (res as any)?.values ?? (Array.isArray(res) ? res : []);
+        setDimValues(vals);
+        setSelectedDimValues((sel) => sel.filter((v) => vals.includes(v)));
+    };
+
     const makeFilters = (): BreakdownFilters | undefined => {
-        if (!activeTagKey || selectedTagValues.length === 0) return undefined;
-        // Shape kept generic—adjust to your backend’s expected schema
-        return { tags: [{ key: activeTagKey, values: selectedTagValues }] } as unknown as BreakdownFilters;
+        const obj: Record<string, string[]> = {};
+        if (activeTagKey && selectedTagValues.length) obj[`TAG:${activeTagKey}`] = selectedTagValues;
+        if (activeDimKey && selectedDimValues.length) obj[activeDimKey] = selectedDimValues;
+        return Object.keys(obj).length ? (obj as BreakdownFilters) : undefined;
     };
 
     const fetchOverview = async () => {
+        // For DAILY granularity, add one day to the user-selected end date.
+        // MONTHLY ranges from `monthToRange` are already correct.
+        const apiEnd = granularity === "DAILY" ? addDays(end, 1) : end;
         const br = await getBreakdown({
             groupBy: [groupBy],
             metric: "UnblendedCost",
             granularity,
             start,
-            end,
+            end: apiEnd,
+            includeFuture: shouldIncludeFuture,
             filters: makeFilters(),
         });
         setBreakdown(br);
@@ -172,6 +200,33 @@ function Inner() {
         if (activeTagKey) fetchTagValues(activeTagKey);
     }, [activeTagKey, start, end]);
 
+    // Load dimension values for chosen dim key
+    useEffect(() => {
+        fetchDimValues(activeDimKey);
+    }, [activeDimKey, start, end]);
+
+    // Attribution coverage for selected tag key
+    useEffect(() => {
+        if (!activeTagKey) {
+            setAttrCoverage(null);
+            return;
+        }
+        (async () => {
+            const apiEnd = granularity === "DAILY" ? addDays(end, 1) : end;
+            const res = await getAttribution({ tag: activeTagKey, start, end: apiEnd, metric: "UnblendedCost", granularity, includeFuture: shouldIncludeFuture });
+            setAttrCoverage(res);
+        })();
+    }, [activeTagKey, start, end, granularity]);
+
+    // Summary for current range (informational)
+    useEffect(() => {
+        (async () => {
+            const apiEnd = granularity === "DAILY" ? addDays(end, 1) : end;
+            const res = await getSummary({ start, end: apiEnd, granularity, metric: "UnblendedCost", includeFuture: shouldIncludeFuture });
+            setSummary(res);
+        })();
+    }, [start, end, granularity]);
+
     // Overview reactive loads
     useEffect(() => {
         if (tab === "OVERVIEW") fetchOverview();
@@ -193,7 +248,7 @@ function Inner() {
     };
 
     // ---- Derived data (Overview) ----
-    const { labels, datasets, topTotals } = useMemo(() => buildLineSeries(breakdown?.rows ?? [], 5), [breakdown]);
+    const { labels, datasets, topTotals } = useMemo(() => buildLineSeries(breakdown?.rows ?? [], topN === "ALL" ? Number.MAX_SAFE_INTEGER : topN), [breakdown, topN]);
     const total = useMemo(() => topTotals.reduce((s, d) => s + d.value, 0), [topTotals]);
     const beyondToday = useMemo(() => end > todayISO(), [end]);
 
@@ -210,7 +265,38 @@ function Inner() {
             { label: monthB, data: allGroups.map((g) => mapB.get(g) ?? 0), backgroundColor: COLORS[1] },
         ],
     };
-    console.log(tagKeys, "as");
+
+    const shouldIncludeFuture = useMemo(() => {
+        const today = todayISO();
+        return end > today;
+    }, [end]);
+    // Add this new useEffect inside your `Inner` component
+
+    useEffect(() => {
+        if (!breakdown) {
+            console.log("BREAKDOWN DATA CLEARED");
+            return;
+        }
+
+        console.group(`[DEBUG] Data updated for Granularity: ${granularity}`);
+
+        // 1. Calculate the total directly from the raw API response
+        const rawTotal = (breakdown.rows || []).reduce((sum, row) => sum + row.amount, 0);
+        console.log(`%cRAW API Total: $${rawTotal.toFixed(6)}`, "color: blue; font-weight: bold;");
+        console.log("Raw breakdown rows:", breakdown.rows);
+
+        // 2. Log the total calculated by your component's logic
+        console.log(`%cComponent-Calculated Total: $${total.toFixed(6)}`, "color: green; font-weight: bold;");
+        console.log("topTotals used for calculation:", topTotals);
+
+        if (Math.abs(rawTotal - total) > 0.01) {
+            console.error("%cMISMATCH DETECTED between raw API total and component total.", "color: red; font-size: 14px;");
+        } else {
+            console.log("%cTotals appear consistent.", "color: green;");
+        }
+
+        console.groupEnd();
+    }, [breakdown, total, granularity, topTotals]); // This will run whenever the data or the final total changes
     return (
         <div className="flex flex-col gap-4">
             {/* Tabs */}
@@ -267,7 +353,7 @@ function Inner() {
                                 {/* Group By */}
                                 <div>
                                     <div className="text-sm font-semibold mb-2">Group By</div>
-                                    <div className="grid grid-cols-2 gap-2">
+                                    <div className="grid grid-cols-3 gap-2">
                                         <button
                                             className={`rounded-md px-3 py-2 text-sm font-semibold shadow-xs ring-1 ring-inset hover:bg-gray-50 ${
                                                 groupBy === "REGION" ? "bg-gray-100 ring-gray-400" : "bg-white ring-gray-300"
@@ -283,6 +369,14 @@ function Inner() {
                                             onClick={() => setGroupBy("INSTANCE_TYPE")}
                                         >
                                             Instance Type
+                                        </button>
+                                        <button
+                                            className={`rounded-md px-3 py-2 text-sm font-semibold shadow-xs ring-1 ring-inset hover:bg-gray-50 ${
+                                                groupBy === "USAGE_TYPE" ? "bg-gray-100 ring-gray-400" : "bg-white ring-gray-300"
+                                            }`}
+                                            onClick={() => setGroupBy("USAGE_TYPE")}
+                                        >
+                                            Usage Type
                                         </button>
                                     </div>
                                 </div>
@@ -306,6 +400,28 @@ function Inner() {
                                             onClick={() => setChartType("line")}
                                         >
                                             Line
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* Top N */}
+                                <div>
+                                    <div className="text-sm font-semibold mb-2">Top N</div>
+                                    <div className="grid grid-cols-4 gap-2">
+                                        {[5, 10, 20].map((n) => (
+                                            <button
+                                                key={n}
+                                                className={`rounded-md px-3 py-2 text-sm font-semibold shadow-xs ring-1 ring-inset hover:bg-gray-50 ${topN === n ? "bg-gray-100 ring-gray-400" : "bg-white ring-gray-300"}`}
+                                                onClick={() => setTopN(n)}
+                                            >
+                                                {n}
+                                            </button>
+                                        ))}
+                                        <button
+                                            className={`rounded-md px-3 py-2 text-sm font-semibold shadow-xs ring-1 ring-inset hover:bg-gray-50 ${topN === "ALL" ? "bg-gray-100 ring-gray-400" : "bg-white ring-gray-300"}`}
+                                            onClick={() => setTopN("ALL")}
+                                        >
+                                            All
                                         </button>
                                     </div>
                                 </div>
@@ -340,7 +456,7 @@ function Inner() {
                                                     );
                                                 })}
                                             </div>
-                                            <div className="mt-2">
+                                            {/* <div className="mt-2">
                                                 <button
                                                     type="button"
                                                     className="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-xs inset-ring inset-ring-gray-300 hover:bg-gray-50"
@@ -360,8 +476,130 @@ function Inner() {
                                                         Clear
                                                     </button>
                                                 )}
+                                            </div> */}
+                                        </>
+                                    )}
+                                </div>
+
+                                {/* Dimension Filters shared */}
+                                {/* <div>
+                                    <div className="text-sm font-semibold mb-2">Filter by Dimension</div>
+                                    <select className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm" value={activeDimKey} onChange={(e) => setActiveDimKey(e.target.value as any)}>
+                                        {(["REGION", "INSTANCE_TYPE", "INSTANCE_FAMILY", "USAGE_TYPE"] as const).map((k) => (
+                                            <option key={k} value={k}>
+                                                {k}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    {!!dimValues.length && (
+                                        <>
+                                            <div className="text-xs text-gray-500 mt-2">Values</div>
+                                            <div className="flex flex-wrap gap-2 mt-1">
+                                                {dimValues.slice(0, 40).map((v) => {
+                                                    const active = selectedDimValues.includes(v);
+                                                    return (
+                                                        <button
+                                                            key={v}
+                                                            className={`rounded-md px-2.5 py-1.5 text-xs font-medium shadow-xs ring-1 ring-inset hover:bg-gray-50 ${
+                                                                active ? "bg-gray-100 ring-gray-400" : "bg-white ring-gray-300"
+                                                            }`}
+                                                            onClick={() => setSelectedDimValues((cur) => (cur.includes(v) ? cur.filter((x) => x !== v) : [...cur, v]))}
+                                                        >
+                                                            {v}
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+                                            <div className="mt-2">
+                                                <button
+                                                    type="button"
+                                                    className="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-xs inset-ring inset-ring-gray-300 hover:bg-gray-50"
+                                                    onClick={() => fetchCompare()}
+                                                >
+                                                    Apply Filter
+                                                </button>
+                                                {!!selectedDimValues.length && (
+                                                    <button
+                                                        type="button"
+                                                        className="ml-2 rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-xs inset-ring inset-ring-gray-300 hover:bg-gray-50"
+                                                        onClick={() => {
+                                                            setSelectedDimValues([]);
+                                                            fetchCompare();
+                                                        }}
+                                                    >
+                                                        Clear
+                                                    </button>
+                                                )}
                                             </div>
                                         </>
+                                    )}
+                                </div> */}
+
+                                {/* Dimension Filters */}
+                                {/* <div>
+                                    <div className="text-sm font-semibold mb-2">Filter by Dimension</div>
+                                    <select className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm" value={activeDimKey} onChange={(e) => setActiveDimKey(e.target.value as any)}>
+                                        {(["REGION", "INSTANCE_TYPE", "INSTANCE_FAMILY", "USAGE_TYPE"] as const).map((k) => (
+                                            <option key={k} value={k}>
+                                                {k}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    {!!dimValues.length && (
+                                        <>
+                                            <div className="text-xs text-gray-500 mt-2">Values</div>
+                                            <div className="flex flex-wrap gap-2 mt-1">
+                                                {dimValues.slice(0, 40).map((v) => {
+                                                    const active = selectedDimValues.includes(v);
+                                                    return (
+                                                        <button
+                                                            key={v}
+                                                            className={`rounded-md px-2.5 py-1.5 text-xs font-medium shadow-xs ring-1 ring-inset hover:bg-gray-50 ${
+                                                                active ? "bg-gray-100 ring-gray-400" : "bg-white ring-gray-300"
+                                                            }`}
+                                                            onClick={() => setSelectedDimValues((cur) => (cur.includes(v) ? cur.filter((x) => x !== v) : [...cur, v]))}
+                                                        >
+                                                            {v}
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+                                            <div className="mt-2">
+                                                <button
+                                                    type="button"
+                                                    className="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-xs inset-ring inset-ring-gray-300 hover:bg-gray-50"
+                                                    onClick={() => fetchOverview()}
+                                                >
+                                                    Apply Filter
+                                                </button>
+                                                {!!selectedDimValues.length && (
+                                                    <button
+                                                        type="button"
+                                                        className="ml-2 rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-xs inset-ring inset-ring-gray-300 hover:bg-gray-50"
+                                                        onClick={() => {
+                                                            setSelectedDimValues([]);
+                                                            fetchOverview();
+                                                        }}
+                                                    >
+                                                        Clear
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </>
+                                    )}
+                                </div> */}
+
+                                {/* Attribution coverage + Summary */}
+                                <div className="mt-2 text-xs text-slate-600">
+                                    {summary && (
+                                        <div className="mb-1">
+                                            Summary total: <b>{fmtUSD(summary.total)}</b>
+                                        </div>
+                                    )}
+                                    {attrCoverage && (
+                                        <div>
+                                            Coverage for {attrCoverage.tagKey}: <b>{fmtUSD(attrCoverage.attributed)}</b> / {fmtUSD(attrCoverage.total)}
+                                        </div>
                                     )}
                                 </div>
                             </>
@@ -382,7 +620,7 @@ function Inner() {
                                 {/* Group By for Compare */}
                                 <div>
                                     <div className="text-sm font-semibold mb-2">Group By</div>
-                                    <div className="grid grid-cols-2 gap-2">
+                                    <div className="grid grid-cols-3 gap-2">
                                         <button
                                             className={`rounded-md px-3 py-2 text-sm font-semibold shadow-xs ring-1 ring-inset hover:bg-gray-50 ${
                                                 groupBy === "REGION" ? "bg-gray-100 ring-gray-400" : "bg-white ring-gray-300"
@@ -398,6 +636,14 @@ function Inner() {
                                             onClick={() => setGroupBy("INSTANCE_TYPE")}
                                         >
                                             Instance Type
+                                        </button>
+                                        <button
+                                            className={`rounded-md px-3 py-2 text-sm font-semibold shadow-xs ring-1 ring-inset hover:bg-gray-50 ${
+                                                groupBy === "USAGE_TYPE" ? "bg-gray-100 ring-gray-400" : "bg-white ring-gray-300"
+                                            }`}
+                                            onClick={() => setGroupBy("USAGE_TYPE")}
+                                        >
+                                            Usage Type
                                         </button>
                                     </div>
                                 </div>
@@ -455,7 +701,7 @@ function Inner() {
                                                     );
                                                 })}
                                             </div>
-                                            <div className="mt-2">
+                                            {/* <div className="mt-2">
                                                 <button
                                                     type="button"
                                                     className="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-xs inset-ring inset-ring-gray-300 hover:bg-gray-50"
@@ -475,7 +721,7 @@ function Inner() {
                                                         Clear
                                                     </button>
                                                 )}
-                                            </div>
+                                            </div> */}
                                         </>
                                     )}
                                 </div>
@@ -488,6 +734,15 @@ function Inner() {
                 <main className="flex-1 space-y-4">
                     {tab === "OVERVIEW" ? (
                         <>
+                            {/* Selected Tag Filters */}
+                            {!!selectedTagValues.length && (
+                                <div className="flex items-center flex-wrap gap-2 text-xs text-slate-600">
+                                    <span className="font-semibold">Tag: {activeTagKey}</span>
+                                    {selectedTagValues.map((v) => (
+                                        <FilterPill key={v} label={v} onRemove={() => toggleTagValue(v)} />
+                                    ))}
+                                </div>
+                            )}
                             {/* Chart */}
                             <div className="w-full relative" style={{ height: 420 }}>
                                 {beyondToday && (
@@ -496,59 +751,59 @@ function Inner() {
                                     </div>
                                 )}
                                 <div className={beyondToday ? "pt-6 h-full" : "h-full"}>
-                                {(() => {
-                                    const today = todayISO();
-                                    const isFutureIdx = (idx: number) => {
-                                        const d = labels[idx];
-                                        return d > today;
-                                    };
-                                    if (chartType === "line") {
-                                        // Add dotted segments for future dates
-                                        const lineData = {
-                                            labels,
-                                            datasets: (datasets as any).map((ds: any) => ({
-                                                ...ds,
-                                                segment: {
-                                                    borderDash: (ctx: any) => (isFutureIdx(ctx.p1DataIndex) ? [4, 4] : undefined),
-                                                },
-                                            })),
+                                    {(() => {
+                                        const today = todayISO();
+                                        const isFutureIdx = (idx: number) => {
+                                            const d = labels[idx];
+                                            return d > today;
                                         };
+                                        if (chartType === "line") {
+                                            // Add dotted segments for future dates
+                                            const lineData = {
+                                                labels,
+                                                datasets: (datasets as any).map((ds: any) => ({
+                                                    ...ds,
+                                                    segment: {
+                                                        borderDash: (ctx: any) => (isFutureIdx(ctx.p1DataIndex) ? [4, 4] : undefined),
+                                                    },
+                                                })),
+                                            };
+                                            return (
+                                                <Line
+                                                    data={lineData}
+                                                    options={{
+                                                        maintainAspectRatio: false,
+                                                        plugins: { legend: { position: "bottom" } },
+                                                        scales: { y: { beginAtZero: true } },
+                                                        interaction: { mode: "index", intersect: false },
+                                                        elements: { point: { radius: 2 } },
+                                                    }}
+                                                />
+                                            );
+                                        }
+                                        // Bar: outline-only for future bars
+                                        const barData = {
+                                            labels,
+                                            datasets: (datasets as any).map((ds: any, i: number) => ({
+                                                label: ds.label,
+                                                data: ds.data,
+                                                backgroundColor: labels.map((_: any, idx: number) => (isFutureIdx(idx) ? "rgba(0,0,0,0)" : COLORS[i % COLORS.length])),
+                                                borderColor: labels.map((_: any, idx: number) => (isFutureIdx(idx) ? "#94a3b8" : COLORS[i % COLORS.length])), // slate-400
+                                                borderWidth: labels.map((_: any, idx: number) => (isFutureIdx(idx) ? 2 : 0)),
+                                            })),
+                                        } as any;
                                         return (
-                                            <Line
-                                                data={lineData}
+                                            <Bar
+                                                data={barData}
                                                 options={{
                                                     maintainAspectRatio: false,
                                                     plugins: { legend: { position: "bottom" } },
-                                                    scales: { y: { beginAtZero: true } },
+                                                    scales: { x: { ticks: { maxRotation: 30, minRotation: 0 } }, y: { beginAtZero: true } },
                                                     interaction: { mode: "index", intersect: false },
-                                                    elements: { point: { radius: 2 } },
                                                 }}
                                             />
                                         );
-                                    }
-                                    // Bar: outline-only for future bars
-                                    const barData = {
-                                        labels,
-                                        datasets: (datasets as any).map((ds: any, i: number) => ({
-                                            label: ds.label,
-                                            data: ds.data,
-                                            backgroundColor: labels.map((_: any, idx: number) => (isFutureIdx(idx) ? "rgba(0,0,0,0)" : COLORS[i % COLORS.length])),
-                                            borderColor: labels.map((_: any, idx: number) => (isFutureIdx(idx) ? "#94a3b8" : COLORS[i % COLORS.length])), // slate-400
-                                            borderWidth: labels.map((_: any, idx: number) => (isFutureIdx(idx) ? 2 : 0)),
-                                        })),
-                                    } as any;
-                                    return (
-                                        <Bar
-                                            data={barData}
-                                            options={{
-                                                maintainAspectRatio: false,
-                                                plugins: { legend: { position: "bottom" } },
-                                                scales: { x: { ticks: { maxRotation: 30, minRotation: 0 } }, y: { beginAtZero: true } },
-                                                interaction: { mode: "index", intersect: false },
-                                            }}
-                                        />
-                                    );
-                                })()}
+                                    })()}
                                 </div>
                             </div>
 
@@ -557,33 +812,35 @@ function Inner() {
                                 <div className="mt-8 flow-root">
                                     <div className="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
                                         <div className="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
-                                            <table className="relative min-w-full divide-y divide-gray-300">
-                                                <thead>
-                                                    <tr>
-                                                        <th scope="col" className="py-3.5 pr-3 pl-4 text-left text-sm font-semibold text-gray-900 sm:pl-0">
-                                                            {groupBy}
-                                                        </th>
-                                                        <th scope="col" className="px-3 py-3.5 text-right text-sm font-semibold text-gray-900">
-                                                            Cost
-                                                        </th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody className="divide-y divide-gray-200 bg-white">
-                                                    {topTotals.map((s, i) => (
-                                                        <tr key={s.name}>
-                                                            <td className="py-5 pr-3 pl-4 text-sm text-gray-900 whitespace-nowrap sm:pl-0">
-                                                                <span className="inline-block w-2 h-2 rounded-full mr-2" style={{ background: COLORS[i % COLORS.length] }} />
-                                                                {s.name}
-                                                            </td>
-                                                            <td className="px-3 py-5 text-sm whitespace-nowrap text-gray-900 text-right">{fmtUSD(s.value)}</td>
+                                            <div className="max-h-96 overflow-y-auto">
+                                                <table className="relative min-w-full divide-y divide-gray-300">
+                                                    <thead>
+                                                        <tr>
+                                                            <th scope="col" className="py-3.5 pr-3 pl-4 text-left text-sm font-semibold text-gray-900 sm:pl-0">
+                                                                {groupBy.split("_").join(" ")}
+                                                            </th>
+                                                            <th scope="col" className="px-3 py-3.5 text-right text-sm font-semibold text-gray-900">
+                                                                Cost
+                                                            </th>
                                                         </tr>
-                                                    ))}
-                                                    <tr className="bg-gray-50">
-                                                        <td className="py-5 pr-3 pl-4 text-sm font-semibold text-gray-900 whitespace-nowrap sm:pl-0">Total</td>
-                                                        <td className="px-3 py-5 text-sm whitespace-nowrap text-gray-900 text-right font-semibold">{fmtUSD(total)}</td>
-                                                    </tr>
-                                                </tbody>
-                                            </table>
+                                                    </thead>
+                                                    <tbody className="divide-y divide-gray-200 bg-white">
+                                                        {topTotals.map((s, i) => (
+                                                            <tr key={s.name}>
+                                                                <td className="py-5 pr-3 pl-4 text-sm text-gray-900 whitespace-nowrap sm:pl-0">
+                                                                    <span className="inline-block w-2 h-2 rounded-full mr-2" style={{ background: COLORS[i % COLORS.length] }} />
+                                                                    {s.name}
+                                                                </td>
+                                                                <td className="px-3 py-5 text-sm whitespace-nowrap text-gray-900 text-right">{fmtUSD(s.value)}</td>
+                                                            </tr>
+                                                        ))}
+                                                        <tr className="bg-gray-50">
+                                                            <td className="py-5 pr-3 pl-4 text-sm font-semibold text-gray-900 whitespace-nowrap sm:pl-0">Total</td>
+                                                            <td className="px-3 py-5 text-sm whitespace-nowrap text-gray-900 text-right font-semibold">{fmtUSD(total)}</td>
+                                                        </tr>
+                                                    </tbody>
+                                                </table>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -591,6 +848,15 @@ function Inner() {
                         </>
                     ) : (
                         <>
+                            {/* Selected Tag Filters */}
+                            {!!selectedTagValues.length && (
+                                <div className="flex items-center flex-wrap gap-2 text-xs text-slate-600">
+                                    <span className="font-semibold">Tag: {activeTagKey}</span>
+                                    {selectedTagValues.map((v) => (
+                                        <FilterPill key={v} label={v} onRemove={() => toggleTagValue(v)} />
+                                    ))}
+                                </div>
+                            )}
                             {/* Compare Chart */}
                             {(() => {
                                 const currentMonth = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}`;
@@ -612,7 +878,7 @@ function Inner() {
                                                         datasets: (compareBarData.datasets as any).map((ds: any) => ({
                                                             ...ds,
                                                             segment: {
-                                                                borderDash: () => (ds.label === monthA && futureA) || (ds.label === monthB && futureB) ? [4, 4] : undefined,
+                                                                borderDash: () => ((ds.label === monthA && futureA) || (ds.label === monthB && futureB) ? [4, 4] : undefined),
                                                             },
                                                         })),
                                                     }}
@@ -657,44 +923,46 @@ function Inner() {
                                 <div className="mt-8 flow-root">
                                     <div className="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
                                         <div className="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
-                                            <table className="relative min-w-full divide-y divide-gray-300">
-                                                <thead>
-                                                    <tr>
-                                                        <th className="py-3.5 pr-3 pl-4 text-left text-sm font-semibold text-gray-900 sm:pl-0">{groupBy}</th>
-                                                        <th className="px-3 py-3.5 text-right text-sm font-semibold text-gray-900">{monthA}</th>
-                                                        <th className="px-3 py-3.5 text-right text-sm font-semibold text-gray-900">{monthB}</th>
-                                                        <th className="px-3 py-3.5 text-right text-sm font-semibold text-gray-900">Δ</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody className="divide-y divide-gray-200 bg-white">
-                                                    {allGroups.map((g, i) => {
-                                                        const a = mapA.get(g) ?? 0;
-                                                        const b = mapB.get(g) ?? 0;
-                                                        const d = b - a;
-                                                        return (
-                                                            <tr key={g}>
-                                                                <td className="py-5 pr-3 pl-4 text-sm text-gray-900 whitespace-nowrap sm:pl-0">
-                                                                    <span className="inline-block w-2 h-2 rounded-full mr-2" style={{ background: COLORS[i % COLORS.length] }} />
-                                                                    {g}
-                                                                </td>
-                                                                <td className="px-3 py-5 text-sm whitespace-nowrap text-gray-900 text-right">{fmtUSD(a)}</td>
-                                                                <td className="px-3 py-5 text-sm whitespace-nowrap text-gray-900 text-right">{fmtUSD(b)}</td>
-                                                                <td className={`px-3 py-5 text-sm whitespace-nowrap text-right ${d >= 0 ? "text-green-600" : "text-red-600"}`}>
-                                                                    {d >= 0 ? "▲" : "▼"} {fmtUSD(Math.abs(d))}
-                                                                </td>
-                                                            </tr>
-                                                        );
-                                                    })}
-                                                    <tr className="bg-gray-50">
-                                                        <td className="py-5 pr-3 pl-4 text-sm font-semibold text-gray-900 whitespace-nowrap sm:pl-0">Total</td>
-                                                        <td className="px-3 py-5 text-sm whitespace-nowrap text-gray-900 text-right font-semibold">{fmtUSD(totalsA.reduce((s, x) => s + x.value, 0))}</td>
-                                                        <td className="px-3 py-5 text-sm whitespace-nowrap text-gray-900 text-right font-semibold">{fmtUSD(totalsB.reduce((s, x) => s + x.value, 0))}</td>
-                                                        <td className="px-3 py-5 text-sm whitespace-nowrap text-gray-900 text-right font-semibold">
-                                                            {fmtUSD(totalsB.reduce((s, x) => s + x.value, 0) - totalsA.reduce((s, x) => s + x.value, 0))}
-                                                        </td>
-                                                    </tr>
-                                                </tbody>
-                                            </table>
+                                            <div className="max-h-96 overflow-y-auto">
+                                                <table className="relative min-w-full divide-y divide-gray-300">
+                                                    <thead>
+                                                        <tr>
+                                                            <th className="py-3.5 pr-3 pl-4 text-left text-sm font-semibold text-gray-900 sm:pl-0">{groupBy}</th>
+                                                            <th className="px-3 py-3.5 text-right text-sm font-semibold text-gray-900">{monthA}</th>
+                                                            <th className="px-3 py-3.5 text-right text-sm font-semibold text-gray-900">{monthB}</th>
+                                                            <th className="px-3 py-3.5 text-right text-sm font-semibold text-gray-900">Δ</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody className="divide-y divide-gray-200 bg-white">
+                                                        {allGroups.map((g, i) => {
+                                                            const a = mapA.get(g) ?? 0;
+                                                            const b = mapB.get(g) ?? 0;
+                                                            const d = b - a;
+                                                            return (
+                                                                <tr key={g}>
+                                                                    <td className="py-5 pr-3 pl-4 text-sm text-gray-900 whitespace-nowrap sm:pl-0">
+                                                                        <span className="inline-block w-2 h-2 rounded-full mr-2" style={{ background: COLORS[i % COLORS.length] }} />
+                                                                        {g}
+                                                                    </td>
+                                                                    <td className="px-3 py-5 text-sm whitespace-nowrap text-gray-900 text-right">{fmtUSD(a)}</td>
+                                                                    <td className="px-3 py-5 text-sm whitespace-nowrap text-gray-900 text-right">{fmtUSD(b)}</td>
+                                                                    <td className={`px-3 py-5 text-sm whitespace-nowrap text-right ${d >= 0 ? "text-green-600" : "text-red-600"}`}>
+                                                                        {d >= 0 ? "▲" : "▼"} {fmtUSD(Math.abs(d))}
+                                                                    </td>
+                                                                </tr>
+                                                            );
+                                                        })}
+                                                        <tr className="bg-gray-50">
+                                                            <td className="py-5 pr-3 pl-4 text-sm font-semibold text-gray-900 whitespace-nowrap sm:pl-0">Total</td>
+                                                            <td className="px-3 py-5 text-sm whitespace-nowrap text-gray-900 text-right font-semibold">{fmtUSD(totalsA.reduce((s, x) => s + x.value, 0))}</td>
+                                                            <td className="px-3 py-5 text-sm whitespace-nowrap text-gray-900 text-right font-semibold">{fmtUSD(totalsB.reduce((s, x) => s + x.value, 0))}</td>
+                                                            <td className="px-3 py-5 text-sm whitespace-nowrap text-gray-900 text-right font-semibold">
+                                                                {fmtUSD(totalsB.reduce((s, x) => s + x.value, 0) - totalsA.reduce((s, x) => s + x.value, 0))}
+                                                            </td>
+                                                        </tr>
+                                                    </tbody>
+                                                </table>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>

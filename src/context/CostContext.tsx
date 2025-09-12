@@ -7,10 +7,10 @@ type LoadingState = Partial<Record<string, boolean>>;
 type ErrorState = Partial<Record<string, string | null>>;
 
 type CostContextValue = {
-    getSummary: (p?: { start?: string; end?: string; granularity?: Granularity; metric?: Metric }) => Promise<CostSummary>;
-    getBreakdown: (p: { groupBy: string | string[]; start?: string; end?: string; granularity?: Granularity; metric?: Metric; filters?: BreakdownFilters }) => Promise<CostBreakdown>;
-    getAttribution: (p: { tag: string; start?: string; end?: string; granularity?: Granularity; metric?: Metric }) => Promise<CostAttribution>;
-    getDimensions: (p: { key: string; start?: string; end?: string }) => Promise<DimensionValues>;
+    getSummary: (p?: { start?: string; end?: string; granularity?: Granularity; metric?: Metric; includeFuture?: boolean }) => Promise<CostSummary>;
+    getBreakdown: (p: { groupBy: string | string[]; start?: string; end?: string; granularity?: Granularity; metric?: Metric; filters?: BreakdownFilters; includeFuture?: boolean }) => Promise<CostBreakdown>;
+    getAttribution: (p: { tag: string; start?: string; end?: string; granularity?: Granularity; metric?: Metric; includeFuture?: boolean }) => Promise<CostAttribution>;
+    getDimensions: (p: { key: string; start?: string; end?: string; includeFuture?: boolean }) => Promise<DimensionValues>;
     getTags: (p: { key: string; start?: string; end?: string }) => Promise<TagValues>;
 
     loading: LoadingState;
@@ -131,6 +131,7 @@ export function CostProvider({ children, basePath = "/api/cost", cacheTtlMs = 12
     const getTags = useCallback<CostContextValue["getTags"]>(
         async (p) => {
             const qs = buildQS({ key: p.key, start: p.start, end: p.end });
+            console.log("Fetching tags with URL:", `${basePath}/tags?${qs}`); // Debug log
             return getJSON<TagValues>(`${basePath}/tags?${qs}`);
         },
         [basePath, getJSON]

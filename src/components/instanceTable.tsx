@@ -166,7 +166,7 @@ export default function InstancesTable({ instances }: { instances: any[] }) {
     }, [instances, sortKeys, directions]);
 
     return (
-        <div className="px-4 sm:px-6 lg:px-8">
+        <div className="bg-white rounded-xl shadow-md p-3">
             {/* Header */}
             <div className="sm:flex sm:items-center mb-4">
                 <div className="sm:flex-auto">

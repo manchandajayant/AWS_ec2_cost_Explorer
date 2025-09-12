@@ -33,7 +33,9 @@
     "next-env.d.ts",
     ".next/types/**/*.ts",
     "**/*.ts",
-    "**/*.tsx"
+    "**/*.tsx",
+    "src/app/api/run_mock_api_tests.mjs",
+    "src/app/api/run_mock_api_tests.mjs"
   ],
   "exclude": [
     "node_modules"

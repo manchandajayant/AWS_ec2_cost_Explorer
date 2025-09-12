@@ -2,9 +2,10 @@
 // // "use-client";
 import React from "react";
 // import CostPage from "./cost/page";
-import { CostProvider } from "@/context/CostContext_";
+import { CostProvider } from "@/context/CostContext";
 import Cost from "./cost";
 import InstancesList from "./ec2Table";
+import Overview from "./overview";
 // import MockInstances from "@/components/MockInstances";
 const DashboardPage: React.FC = () => {
     return (
@@ -15,7 +16,9 @@ const DashboardPage: React.FC = () => {
                     {/* Inline stacked layout: Stats -> Cost Overview -> Cost Section -> EC2 Section */}
                     {/* <InstancesProvider> */}
                     <div className="flex flex-col gap-4 sm:gap-5">
-                        <section className="bg-white rounded-xl shadow-md p-3">{/* <InstancesDashboardStats /> */}</section>
+                        <section className="bg-white rounded-xl shadow-md p-3">
+                            <Overview />
+                        </section>
 
                         <section className="bg-white rounded-xl shadow-md p-3">
                             {/* <CostSection /> */}

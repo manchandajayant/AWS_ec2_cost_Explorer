@@ -11,10 +11,11 @@ export async function GET(req: NextRequest) {
         const { metric, granularity, start, end, u } = parseCommon(req.url);
         const useMock = u.searchParams.get("mock") === "1" || process.env.MOCK_COST === "1";
         const tagKey = u.searchParams.get("tag") || "Team";
+        const includeFuture = u.searchParams.get("includeFuture") === "1";
 
         // total
         const totalRes = useMock
-            ? mockGetCostAndUsage({ start, end, granularity, metric })
+            ? mockGetCostAndUsage({ start, end, granularity, metric, includeFuture })
             : await ce.send(new GetCostAndUsageCommand({ TimePeriod: { Start: start, End: end }, Granularity: granularity, Metrics: [metric] }));
         const total = (totalRes.ResultsByTime || []).reduce((s: number, p: any) => s + n(p.Total?.[metric]?.Amount), 0);
 
