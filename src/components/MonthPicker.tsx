@@ -95,7 +95,7 @@ export const MonthPicker: React.FC<MonthPickerProps> = ({ initialA, initialB, on
     return (
         <div className={`bg-white rounded-2xl py-6 ${disabled ? "opacity-60 pointer-events-none" : ""} ${className}`}>
             <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 bg-gradient-to-br from-gray-500 to-gray-600 rounded-xl flex items-center justify-center">
+                <div className="w-10 h-10 bg-black rounded-xl flex items-center justify-center">
                     <Calendar className="w-5 h-5 text-white" />
                 </div>
                 <div>
@@ -134,11 +134,7 @@ export const MonthPicker: React.FC<MonthPickerProps> = ({ initialA, initialB, on
                 </div>
             </div>
 
-            <button
-                type="button"
-                onClick={() => onApply?.(a, b)}
-                className="mt-6 w-full py-3 px-6 rounded-xl font-semibold text-sm bg-gradient-to-r from-indigo-500 to-indigo-600 text-white shadow-lg hover:shadow-xl active:scale-95 transition-all"
-            >
+            <button type="button" onClick={() => onApply?.(a, b)} className="mt-6 w-full py-3 px-6 rounded-xl font-semibold text-sm bg-black text-white shadow-lg hover:shadow-xl active:scale-95 transition-all">
                 Apply Months
             </button>
         </div>

@@ -250,6 +250,13 @@ function Inner() {
     // ---- Derived data (Overview) ----
     const { labels, datasets, topTotals } = useMemo(() => buildLineSeries(breakdown?.rows ?? [], topN === "ALL" ? Number.MAX_SAFE_INTEGER : topN), [breakdown, topN]);
     const total = useMemo(() => topTotals.reduce((s, d) => s + d.value, 0), [topTotals]);
+    const { maxValue, avgValue } = useMemo(() => {
+        if (!topTotals.length) return { maxValue: 0, avgValue: 0 };
+        const vals = topTotals.map((t) => t.value);
+        const maxValue = Math.max(...vals);
+        const avgValue = vals.reduce((a, b) => a + b, 0) / vals.length;
+        return { maxValue, avgValue };
+    }, [topTotals]);
     const beyondToday = useMemo(() => end > todayISO(), [end]);
 
     // ---- Derived data (Compare) ----
@@ -298,169 +305,169 @@ function Inner() {
         console.groupEnd();
     }, [breakdown, total, granularity, topTotals]); // This will run whenever the data or the final total changes
     return (
-        <div className="flex flex-col gap-4">
-            <div className="mb-1">
-                <h2 className="text-base font-semibold text-gray-900">Costs Attributions</h2>
-                <p className="text-sm text-gray-600">find in detail costs breakup by your deployment regions, instance type and custom tags</p>
-            </div>
-            {/* Tabs */}
-            <div className="flex items-center gap-2">
-                <button
-                    type="button"
-                    className={`rounded-md px-3 py-2 text-sm font-semibold shadow-xs inset-ring inset-ring-gray-300 hover:bg-gray-50 ${tab === "OVERVIEW" ? "bg-gray-100" : "bg-white"}`}
-                    onClick={() => setTab("OVERVIEW")}
-                >
-                    Overview
-                </button>
-                <button
-                    type="button"
-                    className={`rounded-md px-3 py-2 text-sm font-semibold shadow-xs inset-ring inset-ring-gray-300 hover:bg-gray-50 ${tab === "COMPARE" ? "bg-gray-100" : "bg-white"}`}
-                    onClick={() => setTab("COMPARE")}
-                >
-                    Compare
-                </button>
-            </div>
+        <>
+            <div className="flex flex-col gap-4">
+                <div className="mb-1">
+                    <h2 className="text-base font-semibold text-gray-900">Costs Attributions</h2>
+                    <p className="text-sm text-gray-600">find in detail costs breakup by your deployment regions, instance type and custom tags</p>
+                </div>
+                {/* Tabs */}
+                <div className="flex items-center gap-2">
+                    <button
+                        type="button"
+                        className={`rounded-md px-3 py-2 text-sm font-semibold shadow-xs inset-ring inset-ring-gray-300 hover:bg-gray-50 ${tab === "OVERVIEW" ? "bg-gray-100" : "bg-white"}`}
+                        onClick={() => setTab("OVERVIEW")}
+                    >
+                        Overview
+                    </button>
+                    <button
+                        type="button"
+                        className={`rounded-md px-3 py-2 text-sm font-semibold shadow-xs inset-ring inset-ring-gray-300 hover:bg-gray-50 ${tab === "COMPARE" ? "bg-gray-100" : "bg-white"}`}
+                        onClick={() => setTab("COMPARE")}
+                    >
+                        Compare
+                    </button>
+                </div>
 
-            <div className="flex gap-4">
-                {/* Sidebar */}
-                <aside className="w-95 shrink-0 space-y-4">
-                    <div className="p-3 flex flex-col gap-3">
-                        {/* Sidebar content switches by tab */}
-                        {tab === "OVERVIEW" ? (
-                            <>
-                                {/* Date range */}
-                                <ModernDatePicker onApply={handleDateApply} initialStart={start} initialEnd={end} />
-
-                                {/* Granularity */}
-                                <div>
-                                    <div className="text-sm font-semibold mb-2">Granularity</div>
-                                    <div className="grid grid-cols-2 gap-2">
-                                        <button
-                                            className={`rounded-md px-3 py-2 text-sm font-semibold shadow-xs ring-1 ring-inset hover:bg-gray-50 ${
-                                                granularity === "DAILY" ? "bg-gray-100 ring-gray-400" : "bg-white ring-gray-300"
-                                            }`}
-                                            onClick={() => setGranularity("DAILY")}
-                                        >
-                                            Daily
-                                        </button>
-                                        <button
-                                            className={`rounded-md px-3 py-2 text-sm font-semibold shadow-xs ring-1 ring-inset hover:bg-gray-50 ${
-                                                granularity === "MONTHLY" ? "bg-gray-100 ring-gray-400" : "bg-white ring-gray-300"
-                                            }`}
-                                            onClick={() => setGranularity("MONTHLY")}
-                                        >
-                                            Monthly
-                                        </button>
-                                    </div>
-                                </div>
-
-                                {/* Group By */}
-                                <div>
-                                    <div className="text-sm font-semibold mb-2">Group By</div>
-                                    <div className="grid grid-cols-3 gap-2">
-                                        <button
-                                            className={`rounded-md px-3 py-2 text-sm font-semibold shadow-xs ring-1 ring-inset hover:bg-gray-50 ${
-                                                groupBy === "REGION" ? "bg-gray-100 ring-gray-400" : "bg-white ring-gray-300"
-                                            }`}
-                                            onClick={() => setGroupBy("REGION")}
-                                        >
-                                            Region
-                                        </button>
-                                        <button
-                                            className={`rounded-md px-3 py-2 text-sm font-semibold shadow-xs ring-1 ring-inset hover:bg-gray-50 ${
-                                                groupBy === "INSTANCE_TYPE" ? "bg-gray-100 ring-gray-400" : "bg-white ring-gray-300"
-                                            }`}
-                                            onClick={() => setGroupBy("INSTANCE_TYPE")}
-                                        >
-                                            Instance Type
-                                        </button>
-                                        <button
-                                            className={`rounded-md px-3 py-2 text-sm font-semibold shadow-xs ring-1 ring-inset hover:bg-gray-50 ${
-                                                groupBy === "USAGE_TYPE" ? "bg-gray-100 ring-gray-400" : "bg-white ring-gray-300"
-                                            }`}
-                                            onClick={() => setGroupBy("USAGE_TYPE")}
-                                        >
-                                            Usage Type
-                                        </button>
-                                    </div>
-                                </div>
-
-                                {/* Chart Type */}
-                                <div>
-                                    <div className="text-sm font-semibold mb-2">Chart Type</div>
-                                    <div className="grid grid-cols-2 gap-2">
-                                        <button
-                                            className={`rounded-md px-3 py-2 text-sm font-semibold shadow-xs ring-1 ring-inset hover:bg-gray-50 ${
-                                                chartType === "bar" ? "bg-gray-100 ring-gray-400" : "bg-white ring-gray-300"
-                                            }`}
-                                            onClick={() => setChartType("bar")}
-                                        >
-                                            Bar
-                                        </button>
-                                        <button
-                                            className={`rounded-md px-3 py-2 text-sm font-semibold shadow-xs ring-1 ring-inset hover:bg-gray-50 ${
-                                                chartType === "line" ? "bg-gray-100 ring-gray-400" : "bg-white ring-gray-300"
-                                            }`}
-                                            onClick={() => setChartType("line")}
-                                        >
-                                            Line
-                                        </button>
-                                    </div>
-                                </div>
-
-                                {/* Top N */}
-                                <div>
-                                    <div className="text-sm font-semibold mb-2">Top N</div>
-                                    <div className="grid grid-cols-4 gap-2">
-                                        {[5, 10, 20].map((n) => (
+                <div className="flex gap-4">
+                    {/* Sidebar */}
+                    <aside className="w-95 shrink-0 space-y-4">
+                        <div className="p-3 flex flex-col gap-3">
+                            {/* Sidebar content switches by tab */}
+                            {tab === "OVERVIEW" ? (
+                                <>
+                                    {/* Date range */}
+                                    <ModernDatePicker onApply={handleDateApply} initialStart={start} initialEnd={end} />
+                                    {/* Granularity */}
+                                    <div>
+                                        <div className="text-sm font-semibold mb-2">Granularity</div>
+                                        <div className="grid grid-cols-2 gap-2">
                                             <button
-                                                key={n}
-                                                className={`rounded-md px-3 py-2 text-sm font-semibold shadow-xs ring-1 ring-inset hover:bg-gray-50 ${topN === n ? "bg-gray-100 ring-gray-400" : "bg-white ring-gray-300"}`}
-                                                onClick={() => setTopN(n)}
+                                                className={`rounded-md px-3 py-2 text-sm font-semibold shadow-xs ring-1 ring-inset hover:bg-gray-50 ${
+                                                    granularity === "DAILY" ? "bg-gray-100 ring-gray-400" : "bg-white ring-gray-300"
+                                                }`}
+                                                onClick={() => setGranularity("DAILY")}
                                             >
-                                                {n}
+                                                Daily
                                             </button>
-                                        ))}
-                                        <button
-                                            className={`rounded-md px-3 py-2 text-sm font-semibold shadow-xs ring-1 ring-inset hover:bg-gray-50 ${topN === "ALL" ? "bg-gray-100 ring-gray-400" : "bg-white ring-gray-300"}`}
-                                            onClick={() => setTopN("ALL")}
-                                        >
-                                            All
-                                        </button>
+                                            <button
+                                                className={`rounded-md px-3 py-2 text-sm font-semibold shadow-xs ring-1 ring-inset hover:bg-gray-50 ${
+                                                    granularity === "MONTHLY" ? "bg-gray-100 ring-gray-400" : "bg-white ring-gray-300"
+                                                }`}
+                                                onClick={() => setGranularity("MONTHLY")}
+                                            >
+                                                Monthly
+                                            </button>
+                                        </div>
                                     </div>
-                                </div>
+                                    {/* Group By */}
+                                    <div>
+                                        <div className="text-sm font-semibold mb-2">Group By</div>
+                                        <div className="grid grid-cols-3 gap-2">
+                                            <button
+                                                className={`rounded-md px-3 py-2 text-sm font-semibold shadow-xs ring-1 ring-inset hover:bg-gray-50 ${
+                                                    groupBy === "REGION" ? "bg-gray-100 ring-gray-400" : "bg-white ring-gray-300"
+                                                }`}
+                                                onClick={() => setGroupBy("REGION")}
+                                            >
+                                                Region
+                                            </button>
+                                            <button
+                                                className={`rounded-md px-3 py-2 text-sm font-semibold shadow-xs ring-1 ring-inset hover:bg-gray-50 ${
+                                                    groupBy === "INSTANCE_TYPE" ? "bg-gray-100 ring-gray-400" : "bg-white ring-gray-300"
+                                                }`}
+                                                onClick={() => setGroupBy("INSTANCE_TYPE")}
+                                            >
+                                                Instance Type
+                                            </button>
+                                            <button
+                                                className={`rounded-md px-3 py-2 text-sm font-semibold shadow-xs ring-1 ring-inset hover:bg-gray-50 ${
+                                                    groupBy === "USAGE_TYPE" ? "bg-gray-100 ring-gray-400" : "bg-white ring-gray-300"
+                                                }`}
+                                                onClick={() => setGroupBy("USAGE_TYPE")}
+                                            >
+                                                Usage Type
+                                            </button>
+                                        </div>
+                                    </div>
+                                    {/* Chart Type */}
+                                    <div>
+                                        <div className="text-sm font-semibold mb-2">Chart Type</div>
+                                        <div className="grid grid-cols-2 gap-2">
+                                            <button
+                                                className={`rounded-md px-3 py-2 text-sm font-semibold shadow-xs ring-1 ring-inset hover:bg-gray-50 ${
+                                                    chartType === "bar" ? "bg-gray-100 ring-gray-400" : "bg-white ring-gray-300"
+                                                }`}
+                                                onClick={() => setChartType("bar")}
+                                            >
+                                                Bar
+                                            </button>
+                                            <button
+                                                className={`rounded-md px-3 py-2 text-sm font-semibold shadow-xs ring-1 ring-inset hover:bg-gray-50 ${
+                                                    chartType === "line" ? "bg-gray-100 ring-gray-400" : "bg-white ring-gray-300"
+                                                }`}
+                                                onClick={() => setChartType("line")}
+                                            >
+                                                Line
+                                            </button>
+                                        </div>
+                                    </div>
+                                    {/* Top N */}
+                                    <div>
+                                        <div className="text-sm font-semibold mb-2">Top N</div>
+                                        <div className="grid grid-cols-4 gap-2">
+                                            {[5, 10, 20].map((n) => (
+                                                <button
+                                                    key={n}
+                                                    className={`rounded-md px-3 py-2 text-sm font-semibold shadow-xs ring-1 ring-inset hover:bg-gray-50 ${
+                                                        topN === n ? "bg-gray-100 ring-gray-400" : "bg-white ring-gray-300"
+                                                    }`}
+                                                    onClick={() => setTopN(n)}
+                                                >
+                                                    {n}
+                                                </button>
+                                            ))}
+                                            <button
+                                                className={`rounded-md px-3 py-2 text-sm font-semibold shadow-xs ring-1 ring-inset hover:bg-gray-50 ${
+                                                    topN === "ALL" ? "bg-gray-100 ring-gray-400" : "bg-white ring-gray-300"
+                                                }`}
+                                                onClick={() => setTopN("ALL")}
+                                            >
+                                                All
+                                            </button>
+                                        </div>
+                                    </div>
+                                    {/* Tag Filters */}
+                                    <div>
+                                        <div className="text-sm font-semibold mb-2">Filter by Tag</div>
+                                        <select className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm" value={activeTagKey} onChange={(e) => setActiveTagKey(e.target.value)}>
+                                            {tagKeys.map((k) => (
+                                                <option key={k} value={k}>
+                                                    {k}
+                                                </option>
+                                            ))}
+                                        </select>
 
-                                {/* Tag Filters */}
-                                <div>
-                                    <div className="text-sm font-semibold mb-2">Filter by Tag</div>
-                                    <select className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm" value={activeTagKey} onChange={(e) => setActiveTagKey(e.target.value)}>
-                                        {tagKeys.map((k) => (
-                                            <option key={k} value={k}>
-                                                {k}
-                                            </option>
-                                        ))}
-                                    </select>
-
-                                    {!!tagValues.length && (
-                                        <>
-                                            <div className="text-xs text-gray-500 mt-2">Values</div>
-                                            <div className="flex flex-wrap gap-2 mt-1">
-                                                {tagValues.slice(0, 40).map((v) => {
-                                                    const active = selectedTagValues.includes(v);
-                                                    return (
-                                                        <button
-                                                            key={v}
-                                                            className={`rounded-md px-2.5 py-1.5 text-xs font-medium shadow-xs ring-1 ring-inset hover:bg-gray-50 ${
-                                                                active ? "bg-gray-100 ring-gray-400" : "bg-white ring-gray-300"
-                                                            }`}
-                                                            onClick={() => toggleTagValue(v)}
-                                                        >
-                                                            {v}
-                                                        </button>
-                                                    );
-                                                })}
-                                            </div>
-                                            {/* <div className="mt-2">
+                                        {!!tagValues.length && (
+                                            <>
+                                                <div className="text-xs text-gray-500 mt-2">Values</div>
+                                                <div className="flex flex-wrap gap-2 mt-1">
+                                                    {tagValues.slice(0, 40).map((v) => {
+                                                        const active = selectedTagValues.includes(v);
+                                                        return (
+                                                            <button
+                                                                key={v}
+                                                                className={`rounded-md px-2.5 py-1.5 text-xs font-medium shadow-xs ring-1 ring-inset hover:bg-gray-50 ${
+                                                                    active ? "bg-gray-100 ring-gray-400" : "bg-white ring-gray-300"
+                                                                }`}
+                                                                onClick={() => toggleTagValue(v)}
+                                                            >
+                                                                {v}
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+                                                {/* <div className="mt-2">
                                                 <button
                                                     type="button"
                                                     className="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-xs inset-ring inset-ring-gray-300 hover:bg-gray-50"
@@ -481,12 +488,11 @@ function Inner() {
                                                     </button>
                                                 )}
                                             </div> */}
-                                        </>
-                                    )}
-                                </div>
-
-                                {/* Dimension Filters shared */}
-                                {/* <div>
+                                            </>
+                                        )}
+                                    </div>
+                                    {/* Dimension Filters shared */}
+                                    {/* <div>
                                     <div className="text-sm font-semibold mb-2">Filter by Dimension</div>
                                     <select className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm" value={activeDimKey} onChange={(e) => setActiveDimKey(e.target.value as any)}>
                                         {(["REGION", "INSTANCE_TYPE", "INSTANCE_FAMILY", "USAGE_TYPE"] as const).map((k) => (
@@ -538,9 +544,8 @@ function Inner() {
                                         </>
                                     )}
                                 </div> */}
-
-                                {/* Dimension Filters */}
-                                {/* <div>
+                                    {/* Dimension Filters */}
+                                    {/* <div>
                                     <div className="text-sm font-semibold mb-2">Filter by Dimension</div>
                                     <select className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm" value={activeDimKey} onChange={(e) => setActiveDimKey(e.target.value as any)}>
                                         {(["REGION", "INSTANCE_TYPE", "INSTANCE_FAMILY", "USAGE_TYPE"] as const).map((k) => (
@@ -592,9 +597,8 @@ function Inner() {
                                         </>
                                     )}
                                 </div> */}
-
-                                {/* Attribution coverage + Summary */}
-                                <div className="mt-2 text-xs text-slate-600">
+                                    {/* Attribution coverage + Summary */}
+                                    {/* <div className="mt-2 text-xs text-slate-600">
                                     {summary && (
                                         <div className="mb-1">
                                             Summary total: <b>{fmtUSD(summary.total)}</b>
@@ -605,107 +609,107 @@ function Inner() {
                                             Coverage for {attrCoverage.tagKey}: <b>{fmtUSD(attrCoverage.attributed)}</b> / {fmtUSD(attrCoverage.total)}
                                         </div>
                                     )}
-                                </div>
-                            </>
-                        ) : (
-                            <>
-                                {/* Compare sidebar (Month vs Month) */}
-                                <div>
-                                    <MonthPicker
-                                        initialA={monthA}
-                                        initialB={monthB}
-                                        onApply={(a, b) => {
-                                            setMonthA(a);
-                                            setMonthB(b);
-                                        }}
-                                    />
-                                </div>
-
-                                {/* Group By for Compare */}
-                                <div>
-                                    <div className="text-sm font-semibold mb-2">Group By</div>
-                                    <div className="grid grid-cols-3 gap-2">
-                                        <button
-                                            className={`rounded-md px-3 py-2 text-sm font-semibold shadow-xs ring-1 ring-inset hover:bg-gray-50 ${
-                                                groupBy === "REGION" ? "bg-gray-100 ring-gray-400" : "bg-white ring-gray-300"
-                                            }`}
-                                            onClick={() => setGroupBy("REGION")}
-                                        >
-                                            Region
-                                        </button>
-                                        <button
-                                            className={`rounded-md px-3 py-2 text-sm font-semibold shadow-xs ring-1 ring-inset hover:bg-gray-50 ${
-                                                groupBy === "INSTANCE_TYPE" ? "bg-gray-100 ring-gray-400" : "bg-white ring-gray-300"
-                                            }`}
-                                            onClick={() => setGroupBy("INSTANCE_TYPE")}
-                                        >
-                                            Instance Type
-                                        </button>
-                                        <button
-                                            className={`rounded-md px-3 py-2 text-sm font-semibold shadow-xs ring-1 ring-inset hover:bg-gray-50 ${
-                                                groupBy === "USAGE_TYPE" ? "bg-gray-100 ring-gray-400" : "bg-white ring-gray-300"
-                                            }`}
-                                            onClick={() => setGroupBy("USAGE_TYPE")}
-                                        >
-                                            Usage Type
-                                        </button>
+                                </div> */}
+                                </>
+                            ) : (
+                                <>
+                                    {/* Compare sidebar (Month vs Month) */}
+                                    <div>
+                                        <MonthPicker
+                                            initialA={monthA}
+                                            initialB={monthB}
+                                            onApply={(a, b) => {
+                                                setMonthA(a);
+                                                setMonthB(b);
+                                            }}
+                                        />
                                     </div>
-                                </div>
 
-                                {/* Chart Type */}
-                                <div>
-                                    <div className="text-sm font-semibold mb-2">Chart Type</div>
-                                    <div className="grid grid-cols-2 gap-2">
-                                        <button
-                                            className={`rounded-md px-3 py-2 text-sm font-semibold shadow-xs ring-1 ring-inset hover:bg-gray-50 ${
-                                                chartType === "bar" ? "bg-gray-100 ring-gray-400" : "bg-white ring-gray-300"
-                                            }`}
-                                            onClick={() => setChartType("bar")}
-                                        >
-                                            Bar
-                                        </button>
-                                        <button
-                                            className={`rounded-md px-3 py-2 text-sm font-semibold shadow-xs ring-1 ring-inset hover:bg-gray-50 ${
-                                                chartType === "line" ? "bg-gray-100 ring-gray-400" : "bg-white ring-gray-300"
-                                            }`}
-                                            onClick={() => setChartType("line")}
-                                        >
-                                            Line
-                                        </button>
+                                    {/* Group By for Compare */}
+                                    <div>
+                                        <div className="text-sm font-semibold mb-2">Group By</div>
+                                        <div className="grid grid-cols-3 gap-2">
+                                            <button
+                                                className={`rounded-md px-3 py-2 text-sm font-semibold shadow-xs ring-1 ring-inset hover:bg-gray-50 ${
+                                                    groupBy === "REGION" ? "bg-gray-100 ring-gray-400" : "bg-white ring-gray-300"
+                                                }`}
+                                                onClick={() => setGroupBy("REGION")}
+                                            >
+                                                Region
+                                            </button>
+                                            <button
+                                                className={`rounded-md px-3 py-2 text-sm font-semibold shadow-xs ring-1 ring-inset hover:bg-gray-50 ${
+                                                    groupBy === "INSTANCE_TYPE" ? "bg-gray-100 ring-gray-400" : "bg-white ring-gray-300"
+                                                }`}
+                                                onClick={() => setGroupBy("INSTANCE_TYPE")}
+                                            >
+                                                Instance Type
+                                            </button>
+                                            <button
+                                                className={`rounded-md px-3 py-2 text-sm font-semibold shadow-xs ring-1 ring-inset hover:bg-gray-50 ${
+                                                    groupBy === "USAGE_TYPE" ? "bg-gray-100 ring-gray-400" : "bg-white ring-gray-300"
+                                                }`}
+                                                onClick={() => setGroupBy("USAGE_TYPE")}
+                                            >
+                                                Usage Type
+                                            </button>
+                                        </div>
                                     </div>
-                                </div>
 
-                                {/* Tag Filters shared */}
-                                <div>
-                                    <div className="text-sm font-semibold mb-2">Filter by Tag</div>
-                                    <select className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm" value={activeTagKey} onChange={(e) => setActiveTagKey(e.target.value)}>
-                                        {tagKeys.map((k) => (
-                                            <option key={k} value={k}>
-                                                {k}
-                                            </option>
-                                        ))}
-                                    </select>
+                                    {/* Chart Type */}
+                                    <div>
+                                        <div className="text-sm font-semibold mb-2">Chart Type</div>
+                                        <div className="grid grid-cols-2 gap-2">
+                                            <button
+                                                className={`rounded-md px-3 py-2 text-sm font-semibold shadow-xs ring-1 ring-inset hover:bg-gray-50 ${
+                                                    chartType === "bar" ? "bg-gray-100 ring-gray-400" : "bg-white ring-gray-300"
+                                                }`}
+                                                onClick={() => setChartType("bar")}
+                                            >
+                                                Bar
+                                            </button>
+                                            <button
+                                                className={`rounded-md px-3 py-2 text-sm font-semibold shadow-xs ring-1 ring-inset hover:bg-gray-50 ${
+                                                    chartType === "line" ? "bg-gray-100 ring-gray-400" : "bg-white ring-gray-300"
+                                                }`}
+                                                onClick={() => setChartType("line")}
+                                            >
+                                                Line
+                                            </button>
+                                        </div>
+                                    </div>
 
-                                    {!!tagValues.length && (
-                                        <>
-                                            <div className="text-xs text-gray-500 mt-2">Values</div>
-                                            <div className="flex flex-wrap gap-2 mt-1">
-                                                {tagValues.slice(0, 40).map((v) => {
-                                                    const active = selectedTagValues.includes(v);
-                                                    return (
-                                                        <button
-                                                            key={v}
-                                                            className={`rounded-md px-2.5 py-1.5 text-xs font-medium shadow-xs ring-1 ring-inset hover:bg-gray-50 ${
-                                                                active ? "bg-gray-100 ring-gray-400" : "bg-white ring-gray-300"
-                                                            }`}
-                                                            onClick={() => toggleTagValue(v)}
-                                                        >
-                                                            {v}
-                                                        </button>
-                                                    );
-                                                })}
-                                            </div>
-                                            {/* <div className="mt-2">
+                                    {/* Tag Filters shared */}
+                                    <div>
+                                        <div className="text-sm font-semibold mb-2">Filter by Tag</div>
+                                        <select className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm" value={activeTagKey} onChange={(e) => setActiveTagKey(e.target.value)}>
+                                            {tagKeys.map((k) => (
+                                                <option key={k} value={k}>
+                                                    {k}
+                                                </option>
+                                            ))}
+                                        </select>
+
+                                        {!!tagValues.length && (
+                                            <>
+                                                <div className="text-xs text-gray-500 mt-2">Values</div>
+                                                <div className="flex flex-wrap gap-2 mt-1">
+                                                    {tagValues.slice(0, 40).map((v) => {
+                                                        const active = selectedTagValues.includes(v);
+                                                        return (
+                                                            <button
+                                                                key={v}
+                                                                className={`rounded-md px-2.5 py-1.5 text-xs font-medium shadow-xs ring-1 ring-inset hover:bg-gray-50 ${
+                                                                    active ? "bg-gray-100 ring-gray-400" : "bg-white ring-gray-300"
+                                                                }`}
+                                                                onClick={() => toggleTagValue(v)}
+                                                            >
+                                                                {v}
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+                                                {/* <div className="mt-2">
                                                 <button
                                                     type="button"
                                                     className="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-xs inset-ring inset-ring-gray-300 hover:bg-gray-50"
@@ -726,189 +730,79 @@ function Inner() {
                                                     </button>
                                                 )}
                                             </div> */}
-                                        </>
-                                    )}
-                                </div>
-                            </>
-                        )}
-                    </div>
-                </aside>
-
-                {/* Main content */}
-                <main className="flex-1 space-y-4">
-                    {tab === "OVERVIEW" ? (
-                        <>
-                            {/* Selected Tag Filters */}
-                            {!!selectedTagValues.length && (
-                                <div className="flex items-center flex-wrap gap-2 text-xs text-slate-600">
-                                    <span className="font-semibold">Tag: {activeTagKey}</span>
-                                    {selectedTagValues.map((v) => (
-                                        <FilterPill key={v} label={v} onRemove={() => toggleTagValue(v)} />
-                                    ))}
-                                </div>
+                                            </>
+                                        )}
+                                    </div>
+                                </>
                             )}
-                            {/* Chart */}
-                            <div className="w-full relative" style={{ height: 420 }}>
-                                {beyondToday && (
-                                    <div className="absolute top-0 left-0 right-0 text-center text-xs text-slate-600 border-t border-dashed border-slate-400 py-1 bg-white/70">
-                                        Dates in the future are estimated based on trends
+                        </div>
+                    </aside>
+
+                    {/* Main content */}
+                    <main className="flex-1 space-y-4">
+                        {tab === "OVERVIEW" ? (
+                            <>
+                                {/* Selected Tag Filters */}
+                                {!!selectedTagValues.length && (
+                                    <div className="flex items-center flex-wrap gap-2 text-xs text-slate-600">
+                                        <span className="font-semibold">Tag: {activeTagKey}</span>
+                                        {selectedTagValues.map((v) => (
+                                            <FilterPill key={v} label={v} onRemove={() => toggleTagValue(v)} />
+                                        ))}
                                     </div>
                                 )}
-                                <div className={beyondToday ? "pt-6 h-full" : "h-full"}>
-                                    {(() => {
-                                        const today = todayISO();
-                                        const isFutureIdx = (idx: number) => {
-                                            const d = labels[idx];
-                                            return d > today;
-                                        };
-                                        if (chartType === "line") {
-                                            // Add dotted segments for future dates
-                                            const lineData = {
-                                                labels,
-                                                datasets: (datasets as any).map((ds: any) => ({
-                                                    ...ds,
-                                                    segment: {
-                                                        borderDash: (ctx: any) => (isFutureIdx(ctx.p1DataIndex) ? [4, 4] : undefined),
-                                                    },
-                                                })),
-                                            };
-                                            return (
-                                                <Line
-                                                    data={lineData}
-                                                    options={{
-                                                        maintainAspectRatio: false,
-                                                        plugins: { legend: { position: "bottom" } },
-                                                        scales: { y: { beginAtZero: true } },
-                                                        interaction: { mode: "index", intersect: false },
-                                                        elements: { point: { radius: 2 } },
-                                                    }}
-                                                />
-                                            );
-                                        }
-                                        // Bar: outline-only for future bars
-                                        const barData = {
-                                            labels,
-                                            datasets: (datasets as any).map((ds: any, i: number) => ({
-                                                label: ds.label,
-                                                data: ds.data,
-                                                backgroundColor: labels.map((_: any, idx: number) => (isFutureIdx(idx) ? "rgba(0,0,0,0)" : COLORS[i % COLORS.length])),
-                                                borderColor: labels.map((_: any, idx: number) => (isFutureIdx(idx) ? "#94a3b8" : COLORS[i % COLORS.length])), // slate-400
-                                                borderWidth: labels.map((_: any, idx: number) => (isFutureIdx(idx) ? 2 : 0)),
-                                            })),
-                                        } as any;
-                                        return (
-                                            <Bar
-                                                data={barData}
-                                                options={{
-                                                    maintainAspectRatio: false,
-                                                    plugins: { legend: { position: "bottom" } },
-                                                    scales: { x: { ticks: { maxRotation: 30, minRotation: 0 } }, y: { beginAtZero: true } },
-                                                    interaction: { mode: "index", intersect: false },
-                                                }}
-                                            />
-                                        );
-                                    })()}
-                                </div>
-                            </div>
-
-                            {/* Table */}
-                            <div className="px-4 sm:px-6 lg:px-8">
-                                <div className="mt-8 flow-root">
-                                    <div className="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
-                                        <div className="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
-                                            <div className="max-h-96 overflow-y-auto">
-                                                <table className="relative min-w-full divide-y divide-gray-300">
-                                                    <thead>
-                                                        <tr>
-                                                            <th scope="col" className="py-3.5 pr-3 pl-4 text-left text-sm font-semibold text-gray-900 sm:pl-0">
-                                                                {groupBy.split("_").join(" ")}
-                                                            </th>
-                                                            <th scope="col" className="px-3 py-3.5 text-right text-sm font-semibold text-gray-900">
-                                                                Cost
-                                                            </th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody className="divide-y divide-gray-200 bg-white">
-                                                        {topTotals.map((s, i) => (
-                                                            <tr key={s.name}>
-                                                                <td className="py-5 pr-3 pl-4 text-sm text-gray-900 whitespace-nowrap sm:pl-0">
-                                                                    <span className="inline-block w-2 h-2 rounded-full mr-2" style={{ background: COLORS[i % COLORS.length] }} />
-                                                                    {s.name}
-                                                                </td>
-                                                                <td className="px-3 py-5 text-sm whitespace-nowrap text-gray-900 text-right">{fmtUSD(s.value)}</td>
-                                                            </tr>
-                                                        ))}
-                                                        <tr className="bg-gray-50">
-                                                            <td className="py-5 pr-3 pl-4 text-sm font-semibold text-gray-900 whitespace-nowrap sm:pl-0">Total</td>
-                                                            <td className="px-3 py-5 text-sm whitespace-nowrap text-gray-900 text-right font-semibold">{fmtUSD(total)}</td>
-                                                        </tr>
-                                                    </tbody>
-                                                </table>
-                                            </div>
+                                {/* Chart */}
+                                <div className="w-full relative" style={{ height: 420 }}>
+                                    {beyondToday && (
+                                        <div className="absolute top-0 left-0 right-0 text-center text-xs text-slate-600 border-t border-dashed border-slate-400 py-1 bg-white/70">
+                                            Dates in the future are estimated based on trends
                                         </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </>
-                    ) : (
-                        <>
-                            {/* Selected Tag Filters */}
-                            {!!selectedTagValues.length && (
-                                <div className="flex items-center flex-wrap gap-2 text-xs text-slate-600">
-                                    <span className="font-semibold">Tag: {activeTagKey}</span>
-                                    {selectedTagValues.map((v) => (
-                                        <FilterPill key={v} label={v} onRemove={() => toggleTagValue(v)} />
-                                    ))}
-                                </div>
-                            )}
-                            {/* Compare Chart */}
-                            {(() => {
-                                const currentMonth = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}`;
-                                const futureA = monthA > currentMonth;
-                                const futureB = monthB > currentMonth;
-                                const showBanner = futureA || futureB;
-                                return (
-                                    <div className="w-full relative" style={{ height: 420 }}>
-                                        {showBanner && (
-                                            <div className="absolute top-0 left-0 right-0 text-center text-xs text-slate-600 border-t border-dashed border-slate-400 py-1 bg-white/70">
-                                                Future months are estimated based on trends
-                                            </div>
-                                        )}
-                                        <div className={showBanner ? "pt-6 h-full" : "h-full"}>
-                                            {chartType === "line" ? (
-                                                <Line
-                                                    data={{
-                                                        labels: compareBarData.labels,
-                                                        datasets: (compareBarData.datasets as any).map((ds: any) => ({
-                                                            ...ds,
-                                                            segment: {
-                                                                borderDash: () => ((ds.label === monthA && futureA) || (ds.label === monthB && futureB) ? [4, 4] : undefined),
-                                                            },
-                                                        })),
-                                                    }}
-                                                    options={{
-                                                        maintainAspectRatio: false,
-                                                        plugins: { legend: { position: "bottom" } },
-                                                        scales: { y: { beginAtZero: true } },
-                                                        interaction: { mode: "index", intersect: false },
-                                                        elements: { point: { radius: 2 } },
-                                                    }}
-                                                />
-                                            ) : (
+                                    )}
+                                    <div className={beyondToday ? "pt-6 h-full" : "h-full"}>
+                                        {(() => {
+                                            const today = todayISO();
+                                            const isFutureIdx = (idx: number) => {
+                                                const d = labels[idx];
+                                                return d > today;
+                                            };
+                                            if (chartType === "line") {
+                                                // Add dotted segments for future dates
+                                                const lineData = {
+                                                    labels,
+                                                    datasets: (datasets as any).map((ds: any) => ({
+                                                        ...ds,
+                                                        segment: {
+                                                            borderDash: (ctx: any) => (isFutureIdx(ctx.p1DataIndex) ? [4, 4] : undefined),
+                                                        },
+                                                    })),
+                                                };
+                                                return (
+                                                    <Line
+                                                        data={lineData}
+                                                        options={{
+                                                            maintainAspectRatio: false,
+                                                            plugins: { legend: { position: "bottom" } },
+                                                            scales: { y: { beginAtZero: true } },
+                                                            interaction: { mode: "index", intersect: false },
+                                                            elements: { point: { radius: 2 } },
+                                                        }}
+                                                    />
+                                                );
+                                            }
+                                            // Bar: outline-only for future bars
+                                            const barData = {
+                                                labels,
+                                                datasets: (datasets as any).map((ds: any, i: number) => ({
+                                                    label: ds.label,
+                                                    data: ds.data,
+                                                    backgroundColor: labels.map((_: any, idx: number) => (isFutureIdx(idx) ? "rgba(0,0,0,0)" : COLORS[i % COLORS.length])),
+                                                    borderColor: labels.map((_: any, idx: number) => (isFutureIdx(idx) ? "#94a3b8" : COLORS[i % COLORS.length])), // slate-400
+                                                    borderWidth: labels.map((_: any, idx: number) => (isFutureIdx(idx) ? 2 : 0)),
+                                                })),
+                                            } as any;
+                                            return (
                                                 <Bar
-                                                    data={{
-                                                        labels: compareBarData.labels,
-                                                        datasets: (compareBarData.datasets as any).map((ds: any, idx: number) => {
-                                                            const isFuture = (ds.label === monthA && futureA) || (ds.label === monthB && futureB);
-                                                            const color = COLORS[idx % COLORS.length];
-                                                            return {
-                                                                ...ds,
-                                                                backgroundColor: isFuture ? "rgba(0,0,0,0)" : color,
-                                                                borderColor: isFuture ? "#94a3b8" : color,
-                                                                borderWidth: isFuture ? 2 : 0,
-                                                            };
-                                                        }),
-                                                    }}
+                                                    data={barData}
                                                     options={{
                                                         maintainAspectRatio: false,
                                                         plugins: { legend: { position: "bottom" } },
@@ -916,66 +810,282 @@ function Inner() {
                                                         interaction: { mode: "index", intersect: false },
                                                     }}
                                                 />
-                                            )}
-                                        </div>
+                                            );
+                                        })()}
                                     </div>
-                                );
-                            })()}
+                                </div>
 
-                            {/* Compare Table */}
-                            <div className="px-4 sm:px-6 lg:px-8">
-                                <div className="mt-8 flow-root">
-                                    <div className="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
-                                        <div className="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
-                                            <div className="max-h-96 overflow-y-auto">
-                                                <table className="relative min-w-full divide-y divide-gray-300">
-                                                    <thead>
-                                                        <tr>
-                                                            <th className="py-3.5 pr-3 pl-4 text-left text-sm font-semibold text-gray-900 sm:pl-0">{groupBy}</th>
-                                                            <th className="px-3 py-3.5 text-right text-sm font-semibold text-gray-900">{monthA}</th>
-                                                            <th className="px-3 py-3.5 text-right text-sm font-semibold text-gray-900">{monthB}</th>
-                                                            <th className="px-3 py-3.5 text-right text-sm font-semibold text-gray-900">Δ</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody className="divide-y divide-gray-200 bg-white">
-                                                        {allGroups.map((g, i) => {
-                                                            const a = mapA.get(g) ?? 0;
-                                                            const b = mapB.get(g) ?? 0;
-                                                            const d = b - a;
-                                                            return (
-                                                                <tr key={g}>
-                                                                    <td className="py-5 pr-3 pl-4 text-sm text-gray-900 whitespace-nowrap sm:pl-0">
-                                                                        <span className="inline-block w-2 h-2 rounded-full mr-2" style={{ background: COLORS[i % COLORS.length] }} />
-                                                                        {g}
-                                                                    </td>
-                                                                    <td className="px-3 py-5 text-sm whitespace-nowrap text-gray-900 text-right">{fmtUSD(a)}</td>
-                                                                    <td className="px-3 py-5 text-sm whitespace-nowrap text-gray-900 text-right">{fmtUSD(b)}</td>
-                                                                    <td className={`px-3 py-5 text-sm whitespace-nowrap text-right ${d >= 0 ? "text-green-600" : "text-red-600"}`}>
-                                                                        {d >= 0 ? "▲" : "▼"} {fmtUSD(Math.abs(d))}
-                                                                    </td>
-                                                                </tr>
-                                                            );
-                                                        })}
-                                                        <tr className="bg-gray-50">
-                                                            <td className="py-5 pr-3 pl-4 text-sm font-semibold text-gray-900 whitespace-nowrap sm:pl-0">Total</td>
-                                                            <td className="px-3 py-5 text-sm whitespace-nowrap text-gray-900 text-right font-semibold">{fmtUSD(totalsA.reduce((s, x) => s + x.value, 0))}</td>
-                                                            <td className="px-3 py-5 text-sm whitespace-nowrap text-gray-900 text-right font-semibold">{fmtUSD(totalsB.reduce((s, x) => s + x.value, 0))}</td>
-                                                            <td className="px-3 py-5 text-sm whitespace-nowrap text-gray-900 text-right font-semibold">
-                                                                {fmtUSD(totalsB.reduce((s, x) => s + x.value, 0) - totalsA.reduce((s, x) => s + x.value, 0))}
-                                                            </td>
-                                                        </tr>
-                                                    </tbody>
-                                                </table>
+                                {/* Table */}
+                                <div className="px-4 sm:px-6 lg:px-8">
+                                    <div className="mt-8 flow-root">
+                                        <div className="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
+                                            <div className="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
+                                                <div className="max-h-96 overflow-y-auto">
+                                                    <table className="relative min-w-full divide-y divide-gray-300">
+                                                        <thead>
+                                                            <tr>
+                                                                <th scope="col" className="py-3.5 pr-3 pl-4 text-left text-sm font-semibold text-gray-900 sm:pl-0">
+                                                                    {groupBy.split("_").join(" ")}
+                                                                </th>
+                                                                <th scope="col" className="px-3 py-3.5 text-right text-sm font-semibold text-gray-900">
+                                                                    Cost
+                                                                </th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody className="divide-y divide-gray-200 bg-white">
+                                                            {topTotals.map((s, i) => {
+                                                                const isMaxAboveAvg = s.value === maxValue && s.value > avgValue;
+                                                                return (
+                                                                    <tr key={s.name} className={isMaxAboveAvg ? "bg-red-50/40" : undefined}>
+                                                                        <td className="py-5 pr-3 pl-4 text-sm text-gray-900 whitespace-nowrap sm:pl-0">
+                                                                            <span className="inline-block w-2 h-2 rounded-full mr-2" style={{ background: COLORS[i % COLORS.length] }} />
+                                                                            {s.name}
+                                                                        </td>
+                                                                        <td className={`px-3 py-5 text-sm whitespace-nowrap text-right ${isMaxAboveAvg ? "text-red-600 font-semibold" : "text-gray-900"}`}>
+                                                                            {fmtUSD(s.value)}
+                                                                        </td>
+                                                                    </tr>
+                                                                );
+                                                            })}
+                                                            <tr className="bg-gray-50">
+                                                                <td className="py-5 pr-3 pl-4 text-sm font-semibold text-gray-900 whitespace-nowrap sm:pl-0">Total</td>
+                                                                <td className="px-3 py-5 text-sm whitespace-nowrap text-gray-900 text-right font-semibold">{fmtUSD(total)}</td>
+                                                            </tr>
+                                                        </tbody>
+                                                    </table>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-                        </>
-                    )}
-                </main>
+                            </>
+                        ) : (
+                            <>
+                                {/* Selected Tag Filters */}
+                                {!!selectedTagValues.length && (
+                                    <div className="flex items-center flex-wrap gap-2 text-xs text-slate-600">
+                                        <span className="font-semibold">Tag: {activeTagKey}</span>
+                                        {selectedTagValues.map((v) => (
+                                            <FilterPill key={v} label={v} onRemove={() => toggleTagValue(v)} />
+                                        ))}
+                                    </div>
+                                )}
+                                {/* Compare Chart */}
+                                {(() => {
+                                    const currentMonth = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}`;
+                                    const futureA = monthA > currentMonth;
+                                    const futureB = monthB > currentMonth;
+                                    const showBanner = futureA || futureB;
+                                    return (
+                                        <div className="w-full relative" style={{ height: 420 }}>
+                                            {showBanner && (
+                                                <div className="absolute top-0 left-0 right-0 text-center text-xs text-slate-600 border-t border-dashed border-slate-400 py-1 bg-white/70">
+                                                    Future months are estimated based on trends
+                                                </div>
+                                            )}
+                                            <div className={showBanner ? "pt-6 h-full" : "h-full"}>
+                                                {chartType === "line" ? (
+                                                    <Line
+                                                        data={{
+                                                            labels: compareBarData.labels,
+                                                            datasets: (compareBarData.datasets as any).map((ds: any) => ({
+                                                                ...ds,
+                                                                segment: {
+                                                                    borderDash: () => ((ds.label === monthA && futureA) || (ds.label === monthB && futureB) ? [4, 4] : undefined),
+                                                                },
+                                                            })),
+                                                        }}
+                                                        options={{
+                                                            maintainAspectRatio: false,
+                                                            plugins: { legend: { position: "bottom" } },
+                                                            scales: { y: { beginAtZero: true } },
+                                                            interaction: { mode: "index", intersect: false },
+                                                            elements: { point: { radius: 2 } },
+                                                        }}
+                                                    />
+                                                ) : (
+                                                    <Bar
+                                                        data={{
+                                                            labels: compareBarData.labels,
+                                                            datasets: (compareBarData.datasets as any).map((ds: any, idx: number) => {
+                                                                const isFuture = (ds.label === monthA && futureA) || (ds.label === monthB && futureB);
+                                                                const color = COLORS[idx % COLORS.length];
+                                                                return {
+                                                                    ...ds,
+                                                                    backgroundColor: isFuture ? "rgba(0,0,0,0)" : color,
+                                                                    borderColor: isFuture ? "#94a3b8" : color,
+                                                                    borderWidth: isFuture ? 2 : 0,
+                                                                };
+                                                            }),
+                                                        }}
+                                                        options={{
+                                                            maintainAspectRatio: false,
+                                                            plugins: { legend: { position: "bottom" } },
+                                                            scales: { x: { ticks: { maxRotation: 30, minRotation: 0 } }, y: { beginAtZero: true } },
+                                                            interaction: { mode: "index", intersect: false },
+                                                        }}
+                                                    />
+                                                )}
+                                            </div>
+                                        </div>
+                                    );
+                                })()}
+
+                                {/* Compare Table */}
+                                <div className="px-4 sm:px-6 lg:px-8">
+                                    <div className="mt-8 flow-root">
+                                        <div className="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
+                                            <div className="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
+                                                <div className="max-h-96 overflow-y-auto">
+                                                    <table className="relative min-w-full divide-y divide-gray-300">
+                                                        <thead>
+                                                            <tr>
+                                                                <th className="py-3.5 pr-3 pl-4 text-left text-sm font-semibold text-gray-900 sm:pl-0">{groupBy}</th>
+                                                                <th className="px-3 py-3.5 text-right text-sm font-semibold text-gray-900">{monthA}</th>
+                                                                <th className="px-3 py-3.5 text-right text-sm font-semibold text-gray-900">{monthB}</th>
+                                                                <th className="px-3 py-3.5 text-right text-sm font-semibold text-gray-900">Δ</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody className="divide-y divide-gray-200 bg-white">
+                                                            {allGroups.map((g, i) => {
+                                                                const a = mapA.get(g) ?? 0;
+                                                                const b = mapB.get(g) ?? 0;
+                                                                const d = b - a;
+                                                                return (
+                                                                    <tr key={g}>
+                                                                        <td className="py-5 pr-3 pl-4 text-sm text-gray-900 whitespace-nowrap sm:pl-0">
+                                                                            <span className="inline-block w-2 h-2 rounded-full mr-2" style={{ background: COLORS[i % COLORS.length] }} />
+                                                                            {g}
+                                                                        </td>
+                                                                        <td className="px-3 py-5 text-sm whitespace-nowrap text-gray-900 text-right">{fmtUSD(a)}</td>
+                                                                        <td className="px-3 py-5 text-sm whitespace-nowrap text-gray-900 text-right">{fmtUSD(b)}</td>
+                                                                        <td className={`px-3 py-5 text-sm whitespace-nowrap text-right ${d >= 0 ? "text-green-600" : "text-red-600"}`}>
+                                                                            {d >= 0 ? "▲" : "▼"} {fmtUSD(Math.abs(d))}
+                                                                        </td>
+                                                                    </tr>
+                                                                );
+                                                            })}
+                                                            <tr className="bg-gray-50">
+                                                                <td className="py-5 pr-3 pl-4 text-sm font-semibold text-gray-900 whitespace-nowrap sm:pl-0">Total</td>
+                                                                <td className="px-3 py-5 text-sm whitespace-nowrap text-gray-900 text-right font-semibold">{fmtUSD(totalsA.reduce((s, x) => s + x.value, 0))}</td>
+                                                                <td className="px-3 py-5 text-sm whitespace-nowrap text-gray-900 text-right font-semibold">{fmtUSD(totalsB.reduce((s, x) => s + x.value, 0))}</td>
+                                                                <td className="px-3 py-5 text-sm whitespace-nowrap text-gray-900 text-right font-semibold">
+                                                                    {fmtUSD(totalsB.reduce((s, x) => s + x.value, 0) - totalsA.reduce((s, x) => s + x.value, 0))}
+                                                                </td>
+                                                            </tr>
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </>
+                        )}
+                    </main>
+                </div>
             </div>
-        </div>
+            {/* Cost Attributions container */}
+            <div className="mt-6">
+                <section className="rounded-xl border border-gray-200 p-4">
+                    <div className="mb-2">
+                        <h3 className="text-sm font-semibold text-gray-900">Cost Breakdowns</h3>
+                        <p className="text-xs text-gray-600">Breakdown of costs by the selected tag from the sidebar.</p>
+                    </div>
+                    {!activeTagKey ? (
+                        <div className="text-xs text-gray-500">Select a Tag key in the sidebar to see attribution breakdown.</div>
+                    ) : (
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                            {/* Left column: Tag table */}
+                            <section className="rounded-xl border border-gray-200 p-4">
+                                <div className="text-xs text-gray-600 mb-2">
+                                    Tag: <b>{activeTagKey}</b>
+                                    {attrCoverage && (
+                                        <>
+                                            <span className="mx-2 text-gray-400">•</span>
+                                            Attributed {fmtUSD(attrCoverage.attributed)} of {fmtUSD(attrCoverage.total)}
+                                        </>
+                                    )}
+                                </div>
+                                {attrCoverage ? (
+                                    <div className="max-h-72 overflow-y-auto border rounded-lg">
+                                        <table className="min-w-full divide-y divide-gray-200">
+                                            <thead className="bg-gray-50">
+                                                <tr>
+                                                    <th className="py-3.5 pr-3 pl-4 text-left text-xs font-semibold text-gray-900 sm:pl-6">Value</th>
+                                                    <th className="px-3 py-3.5 text-right text-xs font-semibold text-gray-900">Amount</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-gray-100 bg-white">
+                                                {(() => {
+                                                    const rows = attrCoverage.breakdown.slice().sort((a, b) => b.amount - a.amount);
+                                                    const maxVal = rows.length ? Math.max(...rows.map((r) => r.amount)) : 0;
+                                                    return rows.map((row) => {
+                                                        const isMax = row.amount === maxVal;
+                                                        return (
+                                                            <tr key={row.key}>
+                                                                <td className="py-3 pr-3 pl-4 text-sm text-gray-900 whitespace-nowrap sm:pl-6">{row.key || "(untagged)"}</td>
+                                                                <td className={`px-3 py-3 text-sm whitespace-nowrap text-right ${isMax ? "text-red-600 font-semibold" : "text-gray-900"}`}>{fmtUSD(row.amount)}</td>
+                                                            </tr>
+                                                        );
+                                                    });
+                                                })()}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                ) : (
+                                    <div className="text-xs text-gray-500">Loading attribution…</div>
+                                )}
+                            </section>
+
+                            {/* Right column: Attribution summary */}
+                            <section className="rounded-xl border border-gray-200 p-4">
+                                {attrCoverage && (
+                                    <div className="space-y-3">
+                                        <div>
+                                            <div className="text-sm font-semibold text-gray-800">Attribution for Tag: '{attrCoverage.tagKey}'</div>
+                                            <div className="text-xs text-gray-500">Total cost for the selected period.</div>
+                                        </div>
+                                        <div className="flex justify-between items-baseline">
+                                            <span className="text-sm font-medium text-gray-600">Total</span>
+                                            <span className="text-lg font-semibold text-gray-900">{fmtUSD(attrCoverage.total)}</span>
+                                        </div>
+                                        <div className="w-full flex h-3 rounded-full overflow-hidden bg-gray-200">
+                                            <div
+                                                className="bg-sky-500"
+                                                style={{ width: `${(attrCoverage.attributed / Math.max(1, attrCoverage.total)) * 100}%` }}
+                                                title={`Attributed: ${fmtUSD(attrCoverage.attributed)}`}
+                                            ></div>
+                                            <div
+                                                className="bg-slate-400"
+                                                style={{ width: `${(attrCoverage.unaccounted / Math.max(1, attrCoverage.total)) * 100}%` }}
+                                                title={`Unaccounted: ${fmtUSD(attrCoverage.unaccounted)}`}
+                                            ></div>
+                                        </div>
+                                        <div className="space-y-2 text-xs">
+                                            <div className="flex justify-between items-center">
+                                                <div className="flex items-center gap-2">
+                                                    <div className="w-2 h-2 rounded-full bg-sky-500"></div>
+                                                    <span className="text-gray-700">Attributed</span>
+                                                </div>
+                                                <span className="font-medium text-gray-800">{fmtUSD(attrCoverage.attributed)}</span>
+                                            </div>
+                                            <div className="flex justify-between items-center">
+                                                <div className="flex items-center gap-2">
+                                                    <div className="w-2 h-2 rounded-full bg-slate-400"></div>
+                                                    <span className="text-gray-700">Unaccounted</span>
+                                                </div>
+                                                <span className="font-medium text-gray-800">{fmtUSD(attrCoverage.unaccounted)}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </section>
+                        </div>
+                    )}
+                </section>
+            </div>
+        </>
     );
 }
 
