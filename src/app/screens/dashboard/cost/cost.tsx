@@ -302,6 +302,9 @@ const Inner: React.FC = (): ReactElement => {
                         setGroupBy={setGroupBy}
                         chartType={chartType}
                         setChartType={setChartType}
+                        topN={topN}
+                        setTopN={setTopN}
+                        maxTopSelectable={maxTopSelectable}
                         tagKeys={tagKeys}
                         activeTagKey={activeTagKey}
                         setActiveTagKey={setActiveTagKey}

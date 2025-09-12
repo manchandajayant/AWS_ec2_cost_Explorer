@@ -18,6 +18,9 @@ export interface CostSidebarProps {
     setGroupBy: (g: GroupBy) => void;
     chartType: ChartType;
     setChartType: (t: ChartType) => void;
+    topN: number | "ALL";
+    setTopN: (n: number | "ALL") => void;
+    maxTopSelectable: number;
     tagKeys: string[];
     activeTagKey: string;
     setActiveTagKey: (k: string) => void;
@@ -41,6 +44,9 @@ export default function CostSidebar(props: CostSidebarProps) {
         setGroupBy,
         chartType,
         setChartType,
+        topN,
+        setTopN,
+        maxTopSelectable,
         tagKeys,
         activeTagKey,
         setActiveTagKey,
@@ -116,6 +122,43 @@ export default function CostSidebar(props: CostSidebarProps) {
                                 >
                                     Line
                                 </button>
+                            </div>
+                        </div>
+
+                        {/* Top N selector */}
+                        <div>
+                            <div className="flex items-center justify-between mb-2">
+                                <div className="text-sm font-semibold">Top N</div>
+                                <label className="flex items-center gap-2 text-xs text-gray-600">
+                                    <input
+                                        type="checkbox"
+                                        className="rounded border-gray-300"
+                                        checked={topN === "ALL"}
+                                        onChange={(e) =>
+                                            setTopN(e.target.checked ? "ALL" : Math.min(typeof topN === "number" ? topN : 10, maxTopSelectable))
+                                        }
+                                    />
+                                    All
+                                </label>
+                            </div>
+                            <div className="mt-1">
+                                <input
+                                    type="range"
+                                    min={1}
+                                    max={maxTopSelectable}
+                                    step={1}
+                                    value={topN === "ALL" ? maxTopSelectable : topN}
+                                    onChange={(e) => setTopN(parseInt(e.target.value, 10))}
+                                    disabled={topN === "ALL"}
+                                    className="w-full accent-black"
+                                />
+                                <div className="mt-1 flex justify-between text-[10px] text-gray-500">
+                                    <span>1</span>
+                                    <span>{maxTopSelectable}</span>
+                                </div>
+                                <div className="mt-1 text-xs text-gray-600">
+                                    Showing top {topN === "ALL" ? "All" : topN} of {maxTopSelectable}
+                                </div>
                             </div>
                         </div>
 
