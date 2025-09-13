@@ -325,10 +325,7 @@ export const ModernDatePicker: React.FC<ModernDatePickerProps> = ({ onApply, ini
 const App: React.FC = () => {
     const [selectedRange, setSelectedRange] = useState<DateRange | null>(null);
 
-    const handleDateApply = (start: string, end: string): void => {
-        setSelectedRange({ start, end });
-        console.log("Date range applied:", { start, end });
-    };
+    const handleDateApply = (start: string, end: string): void => setSelectedRange({ start, end });
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 p-8">

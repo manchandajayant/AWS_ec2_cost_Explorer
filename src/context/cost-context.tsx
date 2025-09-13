@@ -132,18 +132,14 @@ export function CostProvider({ children, basePath = "/api/cost", cacheTtlMs = 12
     const getTags = useCallback<CostContextValue["getTags"]>(
         async (p) => {
             const qs = buildQS({ key: p.key, start: p.start, end: p.end });
-            console.log("Fetching tags with URL:", `${basePath}/tags?${qs}`); // Debug log
             return getJSON<TagValues>(`${basePath}/tags?${qs}`);
         },
         [basePath, getJSON]
     );
 
-    const getTagKeys = useCallback<CostContextValue["getTagKeys"]>(
-        async () => {
-            return getJSON<{ keys: string[] }>(`${basePath}/tag-keys`);
-        },
-        [basePath, getJSON]
-    );
+    const getTagKeys = useCallback<CostContextValue["getTagKeys"]>(async () => {
+        return getJSON<{ keys: string[] }>(`${basePath}/tag-keys`);
+    }, [basePath, getJSON]);
 
     const value = useMemo<CostContextValue>(
         () => ({
