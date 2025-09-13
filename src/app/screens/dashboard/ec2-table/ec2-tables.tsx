@@ -1,6 +1,6 @@
 "use client";
 import InstancesTable from "@/app/screens/dashboard/ec2-table/ec2-table";
-import { Ec2Provider, useEc2 } from "@/context/EC2Context";
+import { Ec2Provider, useEc2 } from "@/context/ec2-context";
 import { InstanceStatusLabel, SortKey } from "@/types/ec2/types";
 import { ReactElement, useMemo, useState } from "react";
 

@@ -70,7 +70,7 @@ export async function GET(_req: NextRequest) {
 }
 
 // Return EC2 instances from mock file
-export async function mockData() {
+async function mockData() {
     try {
         const filePath = path.join(process.cwd(), "src/app/api/ec2/utils/mock_data", "synthetic-ec2-data.json");
         const rawData = fs.readFileSync(filePath, "utf-8");

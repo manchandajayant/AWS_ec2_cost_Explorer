@@ -1,11 +1,11 @@
 "use client";
 
-import { useCost } from "@/context/CostContext";
-import { useEc2 } from "@/context/EC2Context";
+import { useCost } from "@/context/cost-context";
+import { useEc2 } from "@/context/ec2-context";
 import { BarElement, CategoryScale, Chart as ChartJS, Legend, LinearScale, LineElement, PointElement, Tooltip } from "chart.js";
 
 import { addDaysISO, fmtUSD, iso, startOfMonth } from "@/app/utils/helpers";
-import { useGlobalLoading } from "@/context/GlobalLoadingContext";
+import { useGlobalLoading } from "@/context/global-loading-context";
 import { DailyPoint, InstanceStatusLabel } from "@/types/overview/types";
 import { AlertTriangle } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";

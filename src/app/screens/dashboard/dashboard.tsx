@@ -1,8 +1,8 @@
 "use-client";
 import React, { ReactElement } from "react";
 
-import { CostProvider } from "@/context/CostContext";
-import { Ec2Provider } from "@/context/EC2Context";
+import { CostProvider } from "@/context/cost-context";
+import { Ec2Provider } from "@/context/ec2-context";
 import Cost from "./cost/cost";
 import InstancesList from "./ec2-table/ec2-tables";
 import Overview from "./overview/overview";
