@@ -1,5 +1,5 @@
 "use client";
-import { useGlobalLoading } from "@/context/GlobalLoadingContext";
+import { useGlobalLoading } from "@/context/global-loading-context";
 
 export default function GlobalLoader() {
     const { isLoading } = useGlobalLoading();

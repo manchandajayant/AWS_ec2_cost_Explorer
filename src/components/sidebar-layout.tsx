@@ -1,5 +1,5 @@
 "use client";
-import { useUI } from "@/context/UIContext";
+import { useUI } from "@/context/ui-context";
 import { LayoutDashboard, PanelLeftClose, PanelLeftOpen, Settings, User, Users } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";

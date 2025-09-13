@@ -1,8 +1,8 @@
 "use client";
 
+import { useGlobalLoading } from "@/context/global-loading-context";
 import type { EC2InstanceDTO } from "@/types/ec2/EC2InstanceDTO";
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { useGlobalLoading } from "@/context/GlobalLoadingContext";
 
 type Ec2ContextValue = {
     instances: EC2InstanceDTO[];
