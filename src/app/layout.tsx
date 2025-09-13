@@ -1,8 +1,8 @@
 import GlobalLoader from "@/components/global-loader";
-import SidebarLayout from "@/components/sidebar-layout";
-import { GlobalLoadingProvider } from "@/context/GlobalLoadingContext";
-import { UIProvider } from "@/context/UIContext";
 import ResponsiveGate from "@/components/responsive-gate";
+import SidebarLayout from "@/components/sidebar-layout";
+import { GlobalLoadingProvider } from "@/context/global-loading-context";
+import { UIProvider } from "@/context/ui-context";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";

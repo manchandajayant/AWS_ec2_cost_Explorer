@@ -97,3 +97,39 @@ export interface MultiSelectProps {
     selected: string[];
     onChange: (values: string[]) => void;
 }
+
+export type GroupBy = "REGION" | "INSTANCE_TYPE" | "USAGE_TYPE";
+export type ChartType = "line" | "bar";
+
+export interface CostSidebarProps {
+    tab: Tab;
+    start: string;
+    end: string;
+    onApplyDateRange: (start: string, end: string) => void;
+    maxTopSelectable?: number;
+    // Chart/UI settings now provided via context
+    monthA: string;
+    monthB: string;
+    onApplyMonths: (a: string, b: string) => void;
+}
+
+export type SeriesDataset = {
+    label: string;
+    data: number[];
+    borderColor?: string;
+    backgroundColor?: string;
+    tension?: number;
+    fill?: boolean;
+};
+
+export interface CostOverviewProps {
+    labels: string[];
+    datasets: SeriesDataset[];
+    colors: string[];
+    endISO: string;
+    groupByLabel: string;
+    topTotals: { name: string; value: number }[];
+    total: number;
+    maxValue: number;
+    avgValue: number;
+}

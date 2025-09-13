@@ -1,32 +1,12 @@
 "use client";
+import "@/lib/chart/register";
+import { CostOverviewProps } from "@/types/cost/cost";
 import { useMemo } from "react";
 import { Bar, Line } from "react-chartjs-2";
+import { useCostViewSettings } from "./view-settings-context";
 
-type ChartType = "line" | "bar";
-
-export type SeriesDataset = {
-    label: string;
-    data: number[];
-    borderColor?: string;
-    backgroundColor?: string;
-    tension?: number;
-    fill?: boolean;
-};
-
-export interface CostOverviewProps {
-    chartType: ChartType;
-    labels: string[];
-    datasets: SeriesDataset[];
-    colors: string[];
-    endISO: string;
-    groupByLabel: string;
-    topTotals: { name: string; value: number }[];
-    total: number;
-    maxValue: number;
-    avgValue: number;
-}
-
-export default function CostOverview({ chartType, labels, datasets, colors, endISO, groupByLabel, topTotals, total, maxValue, avgValue }: CostOverviewProps) {
+export default function CostOverview({ labels, datasets, colors, endISO, groupByLabel, topTotals, total, maxValue, avgValue }: CostOverviewProps) {
+    const { chartType } = useCostViewSettings();
     const todayISO = () => new Date().toISOString().slice(0, 10);
     const beyondToday = useMemo(() => endISO > todayISO(), [endISO]);
 
