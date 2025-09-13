@@ -1,5 +1,5 @@
 import GlobalLoader from "@/components/global-loader";
-import { GlobalLoadingProvider, useGlobalLoading } from "@/context/GlobalLoadingContext";
+import { GlobalLoadingProvider, useGlobalLoading } from "@/context/global-loading-context";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
