@@ -172,3 +172,11 @@ export function parseYYYYMM(s?: string): { year: number; month: number } {
 export function toYYYYMM(year: number, monthIndex: number): string {
     return `${year}-${String(monthIndex + 1).padStart(2, "0")}`;
 }
+
+export const todayISO = () => new Date().toISOString().slice(0, 10);
+export const addDays = (iso: string, d: number) => {
+    const dt = new Date(iso);
+    dt.setDate(dt.getDate() + d);
+    return dt.toISOString().slice(0, 10);
+};
+export const last30 = () => ({ start: addDays(todayISO(), -30), end: todayISO() });
