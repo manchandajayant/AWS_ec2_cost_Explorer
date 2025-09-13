@@ -33,13 +33,7 @@ NEXT_PUBLIC_USE_MOCK=1
 **Repository Structure**
 The main structure for our use case is built across
 
-src/
-├── app/
-│ ├── api/ # AWS & Mock API routes
-│ └── screens/ # Main pages: Overview, Cost Attributions, EC2 Table
-├── components/ # Reusable UI components
-├── context/ # Global state: CostContext, EC2Context, Filters
-└── utils/ # Helper functions (date utils, formatting)
+<pre> ```txt src/ ├── app/ │ ├── api/ ─ AWS & Mock API routes │ └── screens/ ─ Main pages: Overview, Cost Attributions, EC2 Table ├── components/ ─ Reusable UI components ├── context/ ─ Global state: CostContext, EC2Context, Filters └── utils/ ─ Helper functions (date utils, formatting) ``` </pre>
 
 ## DATA
 
