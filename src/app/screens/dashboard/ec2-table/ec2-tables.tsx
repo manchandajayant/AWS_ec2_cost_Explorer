@@ -68,7 +68,7 @@ const Page: React.FC = (): ReactElement => {
 };
 
 export const classifyUtilizationWithUptime = (cpuAvg: number, memAvg: number | null, uptimeHours: number, windowHours = 168) => {
-    if (uptimeHours < 24) ({ label: "Unknown" as InstanceStatusLabel, score: null, reason: "Instance < 24h old" });
+    if (uptimeHours < 24) return { label: "Unknown" as InstanceStatusLabel, score: null, reason: "Instance < 24h old" };
 
     const cpuNorm = Math.min(1, cpuAvg / 60);
     const memNorm = memAvg !== null ? Math.min(1, memAvg / 70) : cpuNorm;
