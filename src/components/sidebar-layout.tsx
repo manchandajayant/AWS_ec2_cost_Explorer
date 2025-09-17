@@ -18,8 +18,9 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
     return (
         <div className="h-screen overflow-hidden flex flex-col bg-background text-foreground">
             <header className="shrink-0 h-14 border-b flex items-center justify-between px-3 bg-white dark:bg-background w-full">
-                <div className="flex items-center gap-2 bg-black">
-                    <Image src="/tracer-logo.webp" alt="Tracer" width={150} height={150} className="rounded" />
+                <div className="flex items-center gap-2 bg-transparent">
+                    <Image src="/ec2ob.png" alt="Tracer" width={65} height={65} className="rounded" />
+                    <span className="font-semibold text-[color:var(--sidebar-fg)]">Elastic Observer</span>
                 </div>
                 <button
                     type="button"
@@ -38,8 +39,8 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
                     } bg-[var(--sidebar-bg)] text-[color:var(--sidebar-fg)] border-[color:var(--sidebar-border)] flex flex-col`}
                 >
                     <div className="h-14 flex items-center gap-2 px-3 border-b border-[color:var(--sidebar-border)]">
-                        <Image src="/tracer-logo.webp" alt="Elastic Observer" width={18} height={18} className="rounded" />
-                        {!collapsed && <span className="font-semibold text-[color:var(--sidebar-fg)]">Elastic Observer</span>}
+                        {/* <Image src="/ec2ob.png" alt="Elastic Observer" width={18} height={18} className="rounded" /> */}
+                        {/* {!collapsed && <span className="font-semibold text-[color:var(--sidebar-fg)]">Elastic Observer</span>} */}
                         <button
                             aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
                             className="ml-auto inline-flex items-center justify-center rounded border px-2 py-1 text-xs hover:bg-[var(--sidebar-hover-bg)] text-[color:var(--sidebar-fg)] border-[color:var(--sidebar-border)]"
