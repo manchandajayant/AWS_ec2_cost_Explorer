@@ -6,9 +6,10 @@
 
 This document provides a technical overview of Elastic Observer, an EC2 Observability Prototype, built with Next.js and TypeScript.
 
-<img width="1680" height="946" alt="over1" src="https://github.com/user-attachments/assets/802aafb1-56b3-421c-80f7-bc5d1b33d31a" />
-<img width="1680" height="943" alt="over2" src="https://github.com/user-attachments/assets/05740dae-dc19-4e6f-9573-ed55b4e4b4ad" />
-<img width="1680" height="946" alt="over3" src="https://github.com/user-attachments/assets/b94ad292-d360-4df4-915f-6e66308860b2" />
+<img width="1680" height="945" alt="Screenshot 2025-09-17 at 8 32 28 AM" src="https://github.com/user-attachments/assets/614c3a75-3153-4d83-a295-e6caf5529609" />
+<img width="1680" height="944" alt="Screenshot 2025-09-17 at 8 32 47 AM" src="https://github.com/user-attachments/assets/b9bbeb5c-9121-4a3a-87a0-fa13fa58995a" />
+<img width="1680" height="944" alt="Screenshot 2025-09-17 at 8 33 04 AM" src="https://github.com/user-attachments/assets/6fb41bdc-0369-4cc2-8fb1-83ea659a4ea2" />
+
 
 ## Settings :
 
